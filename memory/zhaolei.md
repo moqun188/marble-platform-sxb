@@ -12,17 +12,19 @@
 
 ### Phase 1: 基础设施 (Week 1-2)
 
-#### Z1 - 服务器环境准备 ⏳ 未开始
-- 清理磁空间（当前仅剩 6.1GB）
-- 安装项目依赖
-- 创建项目目录 `/home/ubuntu/marble-platform/`
-- 预估: 2h
+#### Z1 - 服务器环境准备 ✅ 已完成
+- [x] 磁盘清理：释放 5GB（6.1GB→11GB 可用），journal logs + Docker build cache + old syslog
+- [x] Node.js v20.20.2 确认可用
+- [x] Docker / PM2 确认可用
+- [x] 创建项目目录 `/home/ubuntu/marble-platform/`
+- 完成时间: 2026-08-31 10:15
 
-#### Z2 - 数据导入 ⏳ 未开始
-- Clone Marble 仓库: `https://github.com/withmarbleapp/os-taxonomy`
-- 验证数据完整性（1,590 topics, 3,221 deps）
-- 运行 `node scripts/validate.mjs` 验证
-- 预估: 1h
+#### Z2 - 数据导入 ✅ 已完成
+- [x] Clone Marble 仓库: `https://github.com/withmarbleapp/os-taxonomy`
+- [x] 数据文件就位（topics/deps/clusters/standards 4 个 JSON）
+- [x] `node scripts/validate.mjs` 验证通过：✓ 1590 topics, 3221 deps, 3261 standards, 183 clusters
+- [x] Referential integrity + checksums OK
+- 完成时间: 2026-08-31 10:15
 
 #### Z3 - 项目初始化 ⏳ 未开始
 - Node.js + Express 框架
@@ -89,7 +91,9 @@
 ## 进度记录
 
 ### 2026-08-31
-- [ ] 任务分配完成，等待开始
+- [x] Z1 服务器环境准备完成（磁盘清理 5GB）
+- [x] Z2 数据导入完成 + 验证通过
+- [ ] Z3 项目初始化 — 待开始
 
 ## 技术笔记
 
