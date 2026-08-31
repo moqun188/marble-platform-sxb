@@ -5,7 +5,7 @@ import type {
   SubjectStat,
   Domain,
   Cluster,
-  Standard,
+  StandardsResponse,
   GraphData,
 } from '../types/topic'
 
@@ -25,7 +25,14 @@ async function get<T>(path: string, params?: Record<string, string | number | un
 
 /** 主题列表 */
 export function fetchTopics(filters?: TopicFilters): Promise<PaginatedResponse<Topic>> {
-  return get(`${BASE}/topics`, filters as Record<string, string | number | undefined>)
+  const params: Record<string, string | number | undefined> = {}
+  if (filters?.subject) params.subject = filters.subject
+  if (filters?.domain) params.domain = filters.domain
+  if (filters?.type) params.type = filters.type
+  if (filters?.search) params.search = filters.search
+  if (filters?.offset !== undefined) params.offset = filters.offset
+  if (filters?.limit !== undefined) params.limit = filters.limit
+  return get(`${BASE}/topics`, params)
 }
 
 /** 主题详情 */
@@ -64,7 +71,7 @@ export function fetchClusters(): Promise<Cluster[]> {
 }
 
 /** 课程标准 */
-export function fetchStandards(): Promise<Standard[]> {
+export function fetchStandards(): Promise<StandardsResponse> {
   return get(`${BASE}/standards`)
 }
 

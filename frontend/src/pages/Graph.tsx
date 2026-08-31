@@ -145,7 +145,7 @@ export default function Graph() {
 
     const elements = [
       ...data.nodes.map((n) => ({
-        data: { id: n.id, label: n.label, subject: n.subject, age: n.age || '' },
+        data: { id: n.id, label: n.label, subject: n.subject, age: n.ageStart && n.ageEnd ? `${n.ageStart}-${n.ageEnd}` : '' },
       })),
       ...data.edges.map((e, i) => ({
         data: { id: `e_${i}`, source: e.source, target: e.target, strength: e.strength },
@@ -608,11 +608,11 @@ export default function Graph() {
                   <span className="text-sm">{nodeInfo.subject}</span>
                 </div>
               </div>
-              {nodeInfo.age && (
+              {nodeInfo.domain && (
                 <div>
-                  <p className="text-[10px] text-gray-400 mb-0.5">年龄段</p>
-                  <span className="text-xs px-2 py-0.5 bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 rounded">
-                    {nodeInfo.age}
+                  <p className="text-[10px] text-gray-400 mb-0.5">领域</p>
+                  <span className="text-xs px-2 py-0.5 bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400 rounded">
+                    {nodeInfo.domain}
                   </span>
                 </div>
               )}

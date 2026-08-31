@@ -6,43 +6,42 @@ import type { Topic, TopicFilters } from '../types/topic'
 
 export default function Topics() {
   const [topics, setTopics] = useState<Topic[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [usingMock, setUsingMock] = useState(false)
-  const [filters, setFilters] = useState<TopicFilters>({ page: 1, pageSize: 20 })
   const [search, setSearch] = useState('')
+  const [subjectFilter, setSubjectFilter] = useState('')
+  const [page, setPage] = useState(0)
+  const pageSize = 50
 
   useEffect(() => {
     setLoading(true)
+    const filters: TopicFilters = { offset: page * pageSize, limit: pageSize }
+    if (subjectFilter) filters.subject = subjectFilter
+
     fetchTopics(filters)
       .then((res) => {
         setTopics(res.data)
+        setTotal(res.total)
         setUsingMock(false)
       })
       .catch(() => {
-        // API 未就绪，使用 mock 数据
-        setTopics(generateMockTopics())
+        const mock = generateMockTopics()
+        setTopics(mock)
+        setTotal(mock.length)
         setUsingMock(true)
       })
       .finally(() => setLoading(false))
-  }, [filters.subject, filters.type])
+  }, [subjectFilter, page])
 
-  // 客户端搜索 + 分页（mock 模式）
+  // 客户端搜索过滤（mock 模式或实时搜索）
   const filtered = useMemo(() => {
-    let result = topics
-    if (search) {
-      const q = search.toLowerCase()
-      result = result.filter((t) => t.name.toLowerCase().includes(q) || t.subject.toLowerCase().includes(q))
-    }
-    if (filters.subject) {
-      result = result.filter((t) => t.subject === filters.subject)
-    }
-    return result
-  }, [topics, search, filters.subject])
+    if (!search) return topics
+    const q = search.toLowerCase()
+    return topics.filter((t) => t.name.toLowerCase().includes(q) || t.subject.toLowerCase().includes(q) || t.domain?.toLowerCase().includes(q))
+  }, [topics, search])
 
-  const total = filtered.length
-  const pageSize = filters.pageSize || 20
-  const page = filters.page || 1
-  const paged = usingMock ? filtered.slice((page - 1) * pageSize, page * pageSize) : filtered
+  const totalPages = Math.ceil(total / pageSize)
 
   return (
     <div>
@@ -51,7 +50,7 @@ export default function Topics() {
           <h2 className="text-xl font-bold">主题列表</h2>
           {usingMock && (
             <span className="text-xs text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded mt-1 inline-block">
-              ⚠️ 使用演示数据（后端 API 未就绪）
+              ⚠️ 使用演示数据
             </span>
           )}
         </div>
@@ -62,8 +61,8 @@ export default function Topics() {
       <div className="flex gap-3 mb-4">
         <select
           className="px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700"
-          value={filters.subject || ''}
-          onChange={(e) => setFilters({ ...filters, subject: e.target.value || undefined, page: 1 })}
+          value={subjectFilter}
+          onChange={(e) => { setSubjectFilter(e.target.value); setPage(0) }}
         >
           <option value="">全部学科</option>
           <option value="Science">Science</option>
@@ -80,10 +79,7 @@ export default function Topics() {
           placeholder="搜索主题名称..."
           className="px-3 py-2 text-sm border rounded-lg w-64 bg-white dark:bg-gray-800 dark:border-gray-700"
           value={search}
-          onChange={(e) => {
-            setSearch(e.target.value)
-            setFilters({ ...filters, page: 1 })
-          }}
+          onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
@@ -94,6 +90,7 @@ export default function Topics() {
             <tr>
               <th className="px-4 py-3 font-medium">名称</th>
               <th className="px-4 py-3 font-medium">学科</th>
+              <th className="px-4 py-3 font-medium">领域</th>
               <th className="px-4 py-3 font-medium">年龄段</th>
               <th className="px-4 py-3 font-medium">类型</th>
               <th className="px-4 py-3 font-medium">操作</th>
@@ -101,19 +98,20 @@ export default function Topics() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">加载中...</td></tr>
-            ) : paged.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">无匹配结果</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">加载中...</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">无匹配结果</td></tr>
             ) : (
-              paged.map((t) => (
+              filtered.map((t) => (
                 <tr key={t.id} className="border-t dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                   <td className="px-4 py-3 font-medium">{t.name}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{t.subject}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{t.ageRange || '-'}</td>
+                  <td className="px-4 py-3 text-gray-500 dark:text-gray-500 text-xs">{t.domain || '-'}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                    {t.ageRangeStart && t.ageRangeEnd ? `${t.ageRangeStart}-${t.ageRangeEnd}` : '-'}
+                  </td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      t.type === 'core' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                    }`}>
+                    <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
                       {t.type || '-'}
                     </span>
                   </td>
@@ -130,27 +128,25 @@ export default function Topics() {
       </div>
 
       {/* 分页 */}
-      {usingMock && (
-        <div className="flex justify-between items-center mt-4 text-sm text-gray-500">
-          <span>第 {page} 页，共 {Math.ceil(total / pageSize)} 页</span>
-          <div className="flex gap-2">
-            <button
-              className="px-3 py-1 border rounded disabled:opacity-40 dark:border-gray-700"
-              disabled={page === 1}
-              onClick={() => setFilters({ ...filters, page: page - 1 })}
-            >
-              上一页
-            </button>
-            <button
-              className="px-3 py-1 border rounded disabled:opacity-40 dark:border-gray-700"
-              disabled={page * pageSize >= total}
-              onClick={() => setFilters({ ...filters, page: page + 1 })}
-            >
-              下一页
-            </button>
-          </div>
+      <div className="flex justify-between items-center mt-4 text-sm text-gray-500">
+        <span>第 {page + 1} 页，共 {totalPages} 页</span>
+        <div className="flex gap-2">
+          <button
+            className="px-3 py-1 border rounded disabled:opacity-40 dark:border-gray-700"
+            disabled={page === 0}
+            onClick={() => setPage(page - 1)}
+          >
+            上一页
+          </button>
+          <button
+            className="px-3 py-1 border rounded disabled:opacity-40 dark:border-gray-700"
+            disabled={page + 1 >= totalPages}
+            onClick={() => setPage(page + 1)}
+          >
+            下一页
+          </button>
         </div>
-      )}
+      </div>
     </div>
   )
 }

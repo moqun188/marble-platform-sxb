@@ -17,7 +17,6 @@ export default function TopicDetail() {
     if (!id) return
     setLoading(true)
 
-    // 尝试 API，失败降级 mock
     Promise.all([
       fetchTopic(id).catch(() => null),
       fetchPrereqs(id).catch(() => []),
@@ -65,8 +64,14 @@ export default function TopicDetail() {
         <h2 className="text-2xl font-bold mb-2">{topic.name}</h2>
         <div className="flex gap-2 flex-wrap">
           {topic.subject && <Tag color="blue">{topic.subject}</Tag>}
-          {topic.ageRange && <Tag color="green">{topic.ageRange}</Tag>}
-          {topic.type && <Tag color={topic.type === 'core' ? 'purple' : 'gray'}>{topic.type}</Tag>}
+          {topic.domain && <Tag color="purple">{topic.domain}</Tag>}
+          {topic.ageRangeStart && topic.ageRangeEnd && (
+            <Tag color="green">{topic.ageRangeStart}-{topic.ageRangeEnd} 岁</Tag>
+          )}
+          {topic.type && <Tag color="gray">{topic.type}</Tag>}
+          {topic.centrality !== undefined && (
+            <Tag color="gray">中心度: {topic.centrality.toFixed(3)}</Tag>
+          )}
         </div>
       </div>
 
@@ -78,9 +83,16 @@ export default function TopicDetail() {
       )}
 
       {/* Evidence */}
-      {topic.evidence && (
+      {topic.evidence && topic.evidence.length > 0 && (
         <Card title="✅ 学习证据">
-          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{topic.evidence}</p>
+          <ul className="space-y-2">
+            {topic.evidence.map((e, i) => (
+              <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                <span className="text-green-500 mt-0.5 shrink-0">✓</span>
+                <span>{e}</span>
+              </li>
+            ))}
+          </ul>
         </Card>
       )}
 
@@ -88,6 +100,19 @@ export default function TopicDetail() {
       {topic.assessmentPrompt && (
         <Card title="📝 评估提示">
           <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed italic">{topic.assessmentPrompt}</p>
+        </Card>
+      )}
+
+      {/* 课程标准 */}
+      {topic.standards && topic.standards.length > 0 && (
+        <Card title="📐 关联课程标准">
+          <div className="flex flex-wrap gap-2">
+            {topic.standards.map((s) => (
+              <span key={s} className="text-xs px-2.5 py-1 bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400 rounded-lg">
+                {s}
+              </span>
+            ))}
+          </div>
         </Card>
       )}
 
@@ -128,7 +153,7 @@ function DepList({ title, items, color, empty }: { title: string; items: Topic[]
   }
   return (
     <div className={`rounded-xl border p-4 ${colorMap[color] || ''}`}>
-      <h4 className="font-semibold text-sm mb-3">{title}</h4>
+      <h4 className="font-semibold text-sm mb-3">{title} ({items.length})</h4>
       {items.length === 0 ? (
         <p className="text-xs text-gray-400">{empty}</p>
       ) : (

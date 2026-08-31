@@ -6,62 +6,69 @@ export interface Topic {
   subject: string
   domain?: string
   cluster?: string
-  ageRange?: string
+  ageRangeStart?: number
+  ageRangeEnd?: number
   type?: string
-  evidence?: string
+  evidence?: string[]
   assessmentPrompt?: string
   prerequisites?: string[]
+  centrality?: number
+  standards?: string[]
 }
 
 /** 主题列表筛选参数 */
 export interface TopicFilters {
   subject?: string
+  domain?: string
   age?: string
   type?: string
   search?: string
   page?: number
   pageSize?: number
+  offset?: number
+  limit?: number
 }
 
 /** 分页响应 */
 export interface PaginatedResponse<T> {
   data: T[]
   total: number
-  page: number
-  pageSize: number
+  offset: number
+  limit: number
 }
 
 /** 学科统计 */
 export interface SubjectStat {
-  subject: string
+  name: string
   count: number
   domains?: string[]
 }
 
 /** 领域 */
 export interface Domain {
-  id: string
-  name: string
   subject: string
-  topicCount: number
+  domain: string
+  count: number
 }
 
 /** 领域摘要（parent-friendly） */
 export interface Cluster {
-  id: string
-  name: string
-  description?: string
   subject: string
-  ageGroups?: string[]
-  topics?: string[]
+  domain: string
+  ageRangeStart: number
+  summary: string
 }
 
 /** 课程标准 */
-export interface Standard {
-  id: string
+export interface Curriculum {
+  slug: string
   name: string
-  description?: string
-  topics?: string[]
+  country: string
+  standardCount: number
+}
+
+export interface StandardsResponse {
+  curricula: Curriculum[]
 }
 
 /** 图节点 */
@@ -69,8 +76,11 @@ export interface GraphNode {
   id: string
   label: string
   subject: string
-  age?: string
   domain?: string
+  ageStart?: number
+  ageEnd?: number
+  type?: string
+  centrality?: number
 }
 
 /** 图边 */
@@ -78,6 +88,7 @@ export interface GraphEdge {
   source: string
   target: string
   strength: 'hard' | 'soft'
+  reason?: string
 }
 
 /** 完整图数据 */

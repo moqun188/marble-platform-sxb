@@ -30,6 +30,14 @@ export default function Clusters() {
   const filtered = filterSubject ? clusters.filter((c) => c.subject === filterSubject) : clusters
   const subjectList = [...new Set(clusters.map((c) => c.subject))]
 
+  // 按 domain+subject 分组
+  const grouped = new Map<string, Cluster[]>()
+  filtered.forEach((c) => {
+    const key = `${c.subject}::${c.domain}`
+    if (!grouped.has(key)) grouped.set(key, [])
+    grouped.get(key)!.push(c)
+  })
+
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
@@ -41,7 +49,7 @@ export default function Clusters() {
             </span>
           )}
         </div>
-        <span className="text-sm text-gray-500">{filtered.length} 个领域</span>
+        <span className="text-sm text-gray-500">{grouped.size} 个领域</span>
       </div>
       <p className="text-sm text-[var(--color-text-secondary)] mb-5">
         Parent-friendly 内容，帮助家长理解孩子在学什么
@@ -72,43 +80,40 @@ export default function Clusters() {
 
       {loading ? (
         <p className="text-gray-400">加载中...</p>
-      ) : filtered.length === 0 ? (
+      ) : grouped.size === 0 ? (
         <p className="text-gray-400">暂无数据</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map((c) => (
-            <div key={c.id} className="bg-white dark:bg-gray-900 rounded-xl border border-[var(--color-border)] p-5 hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-2.5 mb-3">
-                <span className="text-xl">{subjectIcons[c.subject] || '📚'}</span>
-                <div>
-                  <h3 className="font-semibold text-sm">{c.name}</h3>
-                  <span className="text-xs text-gray-400">{c.subject}</span>
-                </div>
-              </div>
-              {c.description && (
-                <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-3">{c.description}</p>
-              )}
-              <div className="flex flex-wrap gap-1.5">
-                {c.ageGroups?.map((ag) => (
-                  <span key={ag} className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 rounded-full">
-                    {ag}
-                  </span>
-                ))}
-              </div>
-              {c.topics && c.topics.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                  <p className="text-[10px] text-gray-400 mb-1.5">包含主题：</p>
-                  <div className="flex flex-wrap gap-1">
-                    {c.topics.map((t) => (
-                      <span key={t} className="text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
-                        {t}
-                      </span>
-                    ))}
+          {[...grouped.entries()].map(([key, items]) => {
+            const first = items[0]
+            const ages = items.map((c) => c.ageRangeStart).sort((a, b) => a - b)
+            return (
+              <div key={key} className="bg-white dark:bg-gray-900 rounded-xl border border-[var(--color-border)] p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <span className="text-xl">{subjectIcons[first.subject] || '📚'}</span>
+                  <div>
+                    <h3 className="font-semibold text-sm">{first.domain}</h3>
+                    <span className="text-xs text-gray-400">{first.subject}</span>
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+                <div className="space-y-2 mb-3">
+                  {items.map((c, i) => (
+                    <div key={i}>
+                      <span className="text-[10px] text-blue-500 font-medium">{c.ageRangeStart}岁: </span>
+                      <span className="text-sm text-[var(--color-text-secondary)]">{c.summary}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {ages.map((a) => (
+                    <span key={a} className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 rounded-full">
+                      {a}岁
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

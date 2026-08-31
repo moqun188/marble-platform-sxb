@@ -32,14 +32,8 @@ export default function Subjects() {
 
   useEffect(() => {
     fetchSubjects()
-      .then((d) => {
-        setSubjects(d)
-        setUsingMock(false)
-      })
-      .catch(() => {
-        setSubjects(generateMockSubjects())
-        setUsingMock(true)
-      })
+      .then((d) => { setSubjects(d); setUsingMock(false) })
+      .catch(() => { setSubjects(generateMockSubjects()); setUsingMock(true) })
       .finally(() => setLoading(false))
   }, [])
 
@@ -64,16 +58,16 @@ export default function Subjects() {
       ) : (
         <div className="grid grid-cols-2 gap-4">
           {subjects.map((s) => (
-            <div key={s.subject} className="bg-white dark:bg-gray-900 rounded-xl border border-[var(--color-border)] p-5 hover:shadow-md transition-shadow">
+            <div key={s.name} className="bg-white dark:bg-gray-900 rounded-xl border border-[var(--color-border)] p-5 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-3">
-                <span className="text-2xl">{subjectIcons[s.subject] || '📚'}</span>
+                <span className="text-2xl">{subjectIcons[s.name] || '📚'}</span>
                 <div>
-                  <h3 className="font-semibold">{s.subject}</h3>
+                  <h3 className="font-semibold">{s.name}</h3>
                   <p className="text-xs text-gray-500">{s.domains?.length || 0} 个领域</p>
                 </div>
               </div>
               <div className="flex items-end gap-2">
-                <span className="text-4xl font-bold" style={{ color: subjectColors[s.subject] || '#94A3B8' }}>
+                <span className="text-4xl font-bold" style={{ color: subjectColors[s.name] || '#94A3B8' }}>
                   {s.count}
                 </span>
                 <span className="text-sm text-gray-500 mb-1">微主题</span>
@@ -82,11 +76,20 @@ export default function Subjects() {
                 <div
                   className="h-1.5 rounded-full"
                   style={{
-                    width: `${Math.min((s.count / 400) * 100, 100)}%`,
-                    backgroundColor: subjectColors[s.subject] || '#94A3B8',
+                    width: `${Math.min((s.count / (Math.max(...subjects.map(x => x.count)) || 1)) * 100, 100)}%`,
+                    backgroundColor: subjectColors[s.name] || '#94A3B8',
                   }}
                 />
               </div>
+              {s.domains && s.domains.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {s.domains.map((d) => (
+                    <span key={d} className="text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
+                      {d}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
