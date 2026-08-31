@@ -43,27 +43,33 @@
 - [x] 加载耗时日志输出
 - 完成时间: 2026-08-31 10:30
 
-### Phase 2: 核心 API (Week 3-4)
+### Phase 2: 核心 API (Week 3-4) — 已在 Z3/Z4 阶段完成
 
-#### Z5 - Topics API ⏳ 未开始
-- `GET /api/topics` — 列表 + 筛选（subject, age, type）
-- `GET /api/topics/:id` — 单个详情
-- 预估: 4h
+#### Z5 - Topics API ✅ 已完成
+- [x] `GET /api/topics` — 列表 + 筛选（subject, domain, type, ageMin, ageMax, q, limit, offset）
+- [x] `GET /api/topics/:id` — 单个详情
+- [x] `GET /api/topics/:id/prereqs` — 前置依赖链
+- [x] `GET /api/topics/:id/unlocks` — 解锁的后续主题
+- [x] `GET /api/topics/:id/path` — BFS 学习路径
+- 路由文件: `backend/src/routes/topics.js`
+- 完成时间: 2026-08-31 10:30
 
-#### Z6 - Dependencies API ⏳ 未开始
-- `GET /api/topics/:id/prereqs` — 前置依赖
-- `GET /api/topics/:id/unlocks` — 解锁链
-- `GET /api/topics/:id/path` — 完整学习路径
-- 预估: 6h
+#### Z6 - Dependencies API ✅ 已完成
+- 合并到 Z5 Topics API 中（prereqs/unlocks/path）
+- 完成时间: 2026-08-31 10:30
 
-#### Z7 - Clusters & Standards API ⏳ 未开始
-- `GET /api/clusters` — 领域摘要
-- `GET /api/standards` — 课程标准
-- 预估: 4h
+#### Z7 - Clusters & Standards API ✅ 已完成
+- [x] `GET /api/clusters` — 领域摘要（支持 subject/domain 筛选）
+- [x] `GET /api/standards` — 课程标准（支持 curriculum 筛选）
+- [x] `GET /api/subjects` — 学科统计
+- [x] `GET /api/domains` — 领域列表
+- 路由文件: `backend/src/routes/meta.js`
+- 完成时间: 2026-08-31 10:30
 
-#### Z8 - Graph API ⏳ 未开始
-- `GET /api/graph` — 完整图数据（前端可视化用）
-- 预估: 3h
+#### Z8 - Graph API ✅ 已完成
+- [x] `GET /api/graph` — 完整图数据（支持 subject 筛选，前端可视化用）
+- 返回 nodes[] + edges[] 格式，适配 Cytoscape.js
+- 完成时间: 2026-08-31 10:30
 
 ### Phase 3: 部署优化 (Week 5-6)
 
@@ -100,7 +106,11 @@
 - [x] Z2 数据导入完成 + 验证通过
 - [x] Z3 项目初始化完成（Express + 结构拆分 + .env）
 - [x] Z4 数据加载层完成（JSON解析 + 内存索引 + 缓存）
-- [ ] Z5 Topics API — 待开始
+- [x] Z5 Topics API 完成（5 个端点：list/detail/prereqs/unlocks/path）
+- [x] Z6 Dependencies API 完成（合并到 Z5）
+- [x] Z7 Clusters & Standards API 完成（4 个端点：clusters/standards/subjects/domains）
+- [x] Z8 Graph API 完成（nodes+edges 格式，适配 Cytoscape.js）
+- [ ] Z9 API 文档 — 待开始
 
 ## 技术笔记
 
