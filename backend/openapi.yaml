@@ -1,0 +1,449 @@
+openapi: "3.0.3"
+info:
+  title: Marble Knowledge Graph API
+  description: |
+    REST API for the Marble Skill Taxonomy — an open knowledge graph of 1,590 micro-topics
+    across 8 subjects, wired by 3,221 prerequisite dependencies and aligned to 7 curriculum standards.
+  version: "1.0.0"
+  contact:
+    name: Marble Platform
+    url: https://github.com/moqun188/marble-platform-sxb
+  license:
+    name: ODbL-1.0 + CC BY-SA-4.0
+    url: https://github.com/withmarbleapp/os-taxonomy#license
+
+servers:
+  - url: http://124.222.188.198:3200
+    description: Production
+
+tags:
+  - name: Topics
+    description: Micro-topics (graph nodes) — list, detail, dependencies, paths
+  - name: Meta
+    description: Subjects, domains, clusters, standards, graph data
+  - name: System
+    description: Health check
+
+paths:
+  /api/health:
+    get:
+      tags: [System]
+      summary: Health check
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  topics:
+                    type: integer
+                    example: 1590
+                  dependencies:
+                    type: integer
+                    example: 3221
+
+  /api/topics:
+    get:
+      tags: [Topics]
+      summary: List micro-topics with filtering
+      operationId: listTopics
+      parameters:
+        - name: subject
+          in: query
+          schema:
+            type: string
+            enum: [Science, Mathematics, English, History, "Personal & Social Development", Life Skills, Computing, "Learning to Learn"]
+          description: Filter by subject
+        - name: domain
+          in: query
+          schema:
+            type: string
+          description: Filter by domain (e.g. "Grammar & Punctuation")
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [CONCEPTUAL, PROCEDURAL, REPRESENTATIONAL, LANGUAGE, META]
+          description: Filter by topic type
+        - name: ageMin
+          in: query
+          schema:
+            type: integer
+          description: Minimum starting age
+        - name: ageMax
+          in: query
+          schema:
+            type: integer
+          description: Maximum ending age
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Full-text search in name and description
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+          description: Max results to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Pagination offset
+      responses:
+        "200":
+          description: Topic list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  offset:
+                    type: integer
+                  limit:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Topic"
+
+  /api/topics/{id}:
+    get:
+      tags: [Topics]
+      summary: Get a single micro-topic by ID
+      operationId: getTopic
+      parameters:
+        - $ref: "#/components/parameters/TopicId"
+      responses:
+        "200":
+          description: Topic detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Topic"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/topics/{id}/prereqs:
+    get:
+      tags: [Topics]
+      summary: Get prerequisites of a topic
+      operationId: getTopicPrereqs
+      parameters:
+        - $ref: "#/components/parameters/TopicId"
+      responses:
+        "200":
+          description: Prerequisite topics with edge metadata
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: "#/components/schemas/Topic"
+                    - type: object
+                      properties:
+                        strength:
+                          type: string
+                          enum: [hard, soft]
+                        reason:
+                          type: string
+
+  /api/topics/{id}/unlocks:
+    get:
+      tags: [Topics]
+      summary: Get topics unlocked by this topic
+      operationId: getTopicUnlocks
+      parameters:
+        - $ref: "#/components/parameters/TopicId"
+      responses:
+        "200":
+          description: Unlocked topics with edge metadata
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: "#/components/schemas/Topic"
+                    - type: object
+                      properties:
+                        strength:
+                          type: string
+                          enum: [hard, soft]
+                        reason:
+                          type: string
+
+  /api/topics/{id}/path:
+    get:
+      tags: [Topics]
+      summary: Get learning path from entry to this topic
+      operationId: getTopicPath
+      parameters:
+        - $ref: "#/components/parameters/TopicId"
+      responses:
+        "200":
+          description: Ordered array from entry topic to target
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Topic"
+
+  /api/subjects:
+    get:
+      tags: [Meta]
+      summary: List all subjects with counts and domains
+      operationId: listSubjects
+      responses:
+        "200":
+          description: Subject list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    count:
+                      type: integer
+                    domains:
+                      type: array
+                      items:
+                        type: string
+
+  /api/domains:
+    get:
+      tags: [Meta]
+      summary: List all domains with counts
+      operationId: listDomains
+      responses:
+        "200":
+          description: Domain list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    subject:
+                      type: string
+                    domain:
+                      type: string
+                    count:
+                      type: integer
+
+  /api/clusters:
+    get:
+      tags: [Meta]
+      summary: Parent-friendly domain summaries
+      operationId: listClusters
+      parameters:
+        - name: subject
+          in: query
+          schema:
+            type: string
+        - name: domain
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cluster list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Cluster"
+
+  /api/standards:
+    get:
+      tags: [Meta]
+      summary: Curriculum standards
+      operationId: listStandards
+      parameters:
+        - name: curriculum
+          in: query
+          schema:
+            type: string
+            enum: [uk-nc-2013, ccss-ela, ccss-math, ngss-k5, ngss-ms, ib-pyp-pspe, c3-social-studies]
+          description: Filter by curriculum slug
+      responses:
+        "200":
+          description: Standards list or single curriculum detail
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      curricula:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            slug:
+                              type: string
+                            name:
+                              type: string
+                            country:
+                              type: string
+                            standardCount:
+                              type: integer
+                  - type: object
+                    description: Full curriculum detail (when slug specified)
+
+  /api/graph:
+    get:
+      tags: [Meta]
+      summary: Full graph data for visualization
+      operationId: getGraph
+      parameters:
+        - name: subject
+          in: query
+          schema:
+            type: string
+          description: Filter graph to a single subject
+      responses:
+        "200":
+          description: Graph with nodes and edges
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GraphNode"
+                  edges:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GraphEdge"
+
+components:
+  parameters:
+    TopicId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^mt_"
+      description: Topic ID (e.g. mt_N8CpN1EJrP)
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Topic not found
+
+  schemas:
+    Topic:
+      type: object
+      required: [id, type, subject, name, description, evidence, standards]
+      properties:
+        id:
+          type: string
+          example: mt_N8CpN1EJrP
+        type:
+          type: string
+          enum: [CONCEPTUAL, PROCEDURAL, REPRESENTATIONAL, LANGUAGE, META]
+        subject:
+          type: string
+          example: English
+        domain:
+          type: string
+          example: Grammar & Punctuation
+        name:
+          type: string
+          example: Building sentences
+        description:
+          type: string
+        ageRangeStart:
+          type: integer
+          example: 4
+        ageRangeEnd:
+          type: integer
+          example: 6
+        centrality:
+          type: number
+          format: float
+          example: 0.257
+        evidence:
+          type: array
+          items:
+            type: string
+        assessmentPrompt:
+          type: string
+        standards:
+          type: array
+          items:
+            type: string
+
+    Cluster:
+      type: object
+      properties:
+        subject:
+          type: string
+        domain:
+          type: string
+        ageRangeStart:
+          type: integer
+        summary:
+          type: string
+
+    GraphNode:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        subject:
+          type: string
+        domain:
+          type: string
+        ageStart:
+          type: integer
+        ageEnd:
+          type: integer
+        type:
+          type: string
+        centrality:
+          type: number
+
+    GraphEdge:
+      type: object
+      properties:
+        source:
+          type: string
+        target:
+          type: string
+        strength:
+          type: string
+          enum: [hard, soft]
+        reason:
+          type: string

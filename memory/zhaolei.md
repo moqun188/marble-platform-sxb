@@ -73,9 +73,12 @@
 
 ### Phase 3: 部署优化 (Week 5-6)
 
-#### Z9 - API 文档 ⏳ 未开始
-- Swagger / OpenAPI 规范
-- 预估: 3h
+#### Z9 - API 文档 ✅ 已完成
+- [x] OpenAPI 3.0 规范 (`openapi.yaml`) — 完整 11 个端点定义
+- [x] Swagger UI 集成 — `GET /api/docs` 交互式文档
+- [x] 静态文档 `docs/api.md` — 端点速查 + 数据模型 + 示例
+- [x] swagger-ui-express + yamljs 依赖
+- 完成时间: 2026-08-31 10:40
 
 #### Z10 - Docker 部署 ⏳ 未开始
 - Dockerfile
@@ -110,7 +113,8 @@
 - [x] Z6 Dependencies API 完成（合并到 Z5）
 - [x] Z7 Clusters & Standards API 完成（4 个端点：clusters/standards/subjects/domains）
 - [x] Z8 Graph API 完成（nodes+edges 格式，适配 Cytoscape.js）
-- [ ] Z9 API 文档 — 待开始
+- [x] Z9 API 文档完成（Swagger UI + OpenAPI 规范 + 静态文档）
+- [ ] Z10 Docker 部署 — 待开始
 
 ## 技术笔记
 
