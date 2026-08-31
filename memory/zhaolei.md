@@ -103,9 +103,13 @@
 - [x] Docker 容器健康检查（healthcheck）
 - 完成时间: 2026-08-31 10:50
 
-#### Z14 - 联调支持 ⏳ 待开始
-- 与 xiangbo 前端联调
-- 预估: 4h
+#### Z14 - 联调支持 ✅ 已完成
+- [x] 前端构建成功（React 19 + TS + Vite 8）
+- [x] 前端部署（PM2 托管，端口 5174）
+- [x] API 9 端点联调测试全部通过
+- [x] Swagger UI 可访问
+- [x] 前端页面可访问
+- 完成时间: 2026-08-31 11:25
 
 ## 进度记录
 
@@ -123,7 +127,7 @@
 - [x] Z11 Nginx 跳过（无主机 nginx，Docker 直接暴露）
 - [x] Z12 性能优化完成（gzip + Cache-Control）
 - [x] Z13 监控日志完成（请求日志 + logrotate + Docker healthcheck）
-- [ ] Z14 联调支持 — 待 xiangbo 前端就绪
+- [x] Z14 联调支持完成（前端构建部署 + API 联调测试通过）
 
 ## 技术笔记
 

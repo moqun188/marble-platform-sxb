@@ -4,3 +4,5 @@ node_modules/
 .DS_Store
 
 backend/marble-data/
+frontend-static/
+frontend/node_modules/
