@@ -80,25 +80,30 @@
 - [x] swagger-ui-express + yamljs 依赖
 - 完成时间: 2026-08-31 10:40
 
-#### Z10 - Docker 部署 ⏳ 未开始
-- Dockerfile
-- docker-compose.yml
-- 预估: 3h
+#### Z10 - Docker 部署 ✅ 已完成
+- [x] Dockerfile（node:20-alpine, non-root user, healthcheck）
+- [x] docker-compose.yml（mem_limit 256m, restart unless-stopped）
+- [x] Docker image 构建 + 容器启动
+- [x] PM2 停止，改用 Docker 托管
+- 完成时间: 2026-08-31 10:45
 
-#### Z11 - Nginx 配置 ⏳ 未开始
-- 反向代理
-- 静态资源托管
-- 预估: 2h
+#### Z11 - Nginx 配置 ⏭️ 已跳过
+- 服务器无主机 Nginx，Docker 直接暴露 3200 端口
+- 如后续需要域名/SSL，可加 Nginx 容器
 
-#### Z12 - 性能优化 ⏳ 未开始
-- 缓存策略
-- gzip 压缩
-- 预估: 2h
+#### Z12 - 性能优化 ✅ 已完成
+- [x] gzip 压缩（compression 中间件）
+- [x] Cache-Control: public, max-age=300（graph/subjects/domains/clusters/standards）
+- [x] Docker image 重建
+- 完成时间: 2026-08-31 10:50
 
-#### Z13 - 监控日志 ⏳ 未开始
-- 预估: 2h
+#### Z13 - 监控日志 ✅ 已完成
+- [x] 请求日志中间件（method, path, status, duration）
+- [x] logrotate 日志轮转配置（daily, rotate 7, compress）
+- [x] Docker 容器健康检查（healthcheck）
+- 完成时间: 2026-08-31 10:50
 
-#### Z14 - 联调支持 ⏳ 未开始
+#### Z14 - 联调支持 ⏳ 待开始
 - 与 xiangbo 前端联调
 - 预估: 4h
 
@@ -114,7 +119,11 @@
 - [x] Z7 Clusters & Standards API 完成（4 个端点：clusters/standards/subjects/domains）
 - [x] Z8 Graph API 完成（nodes+edges 格式，适配 Cytoscape.js）
 - [x] Z9 API 文档完成（Swagger UI + OpenAPI 规范 + 静态文档）
-- [ ] Z10 Docker 部署 — 待开始
+- [x] Z10 Docker 部署完成（Dockerfile + compose + healthcheck）
+- [x] Z11 Nginx 跳过（无主机 nginx，Docker 直接暴露）
+- [x] Z12 性能优化完成（gzip + Cache-Control）
+- [x] Z13 监控日志完成（请求日志 + logrotate + Docker healthcheck）
+- [ ] Z14 联调支持 — 待 xiangbo 前端就绪
 
 ## 技术笔记
 

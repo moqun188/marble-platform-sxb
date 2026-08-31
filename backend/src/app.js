@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import compression from "compression";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import { join, dirname } from "path";
@@ -17,8 +18,31 @@ const app = express();
 
 // Middleware
 app.use(cors({ origin: CONFIG.corsOrigin }));
+app.use(compression());
 app.use(express.json());
 app.use(requestLogger);
+
+// Cache control for API responses
+app.use("/api/graph", (req, res, next) => {
+  res.set("Cache-Control", "public, max-age=300"); // 5min
+  next();
+});
+app.use("/api/subjects", (req, res, next) => {
+  res.set("Cache-Control", "public, max-age=300");
+  next();
+});
+app.use("/api/domains", (req, res, next) => {
+  res.set("Cache-Control", "public, max-age=300");
+  next();
+});
+app.use("/api/clusters", (req, res, next) => {
+  res.set("Cache-Control", "public, max-age=300");
+  next();
+});
+app.use("/api/standards", (req, res, next) => {
+  res.set("Cache-Control", "public, max-age=300");
+  next();
+});
 
 // Load data on startup
 loadData();
