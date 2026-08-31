@@ -194,5 +194,7 @@ const subjectColors = {
 
 ## 服务器信息
 - IP: 124.222.188.198
+- 用户: ubuntu
+- 密码: Simperfect123.
 - 前端构建产物由 Nginx 托管
 - 建议前端端口: 由 Nginx 统一代理
