@@ -26,17 +26,22 @@
 - [x] Referential integrity + checksums OK
 - 完成时间: 2026-08-31 10:15
 
-#### Z3 - 项目初始化 ⏳ 未开始
-- Node.js + Express 框架
-- 项目结构搭建
-- 环境配置（.env）
-- 预估: 3h
+#### Z3 - 项目初始化 ✅ 已完成
+- [x] Express 框架 + ESM 模块
+- [x] `.env` 配置（PORT, NODE_ENV, LOG_LEVEL, CORS_ORIGIN）
+- [x] 项目结构拆分：routes/ services/ middleware/ utils/
+- [x] 错误处理中间件 + 请求日志中间件
+- [x] dotenv 依赖安装
+- [x] PM2 托管运行正常
+- 完成时间: 2026-08-31 10:30
 
-#### Z4 - 数据加载层 ⏳ 未开始
-- JSON 文件解析
-- 内存索引构建（Map<id, topic>）
-- 依赖关系索引（prereqMap, unlockMap）
-- 预估: 4h
+#### Z4 - 数据加载层 ✅ 已完成
+- [x] JSON 文件解析（topics/deps/clusters/standards）
+- [x] 内存索引 Map<id, topic>
+- [x] 依赖关系索引 prereqMap + unlockMap
+- [x] 数据服务层 services/data.js（按需加载 + 缓存）
+- [x] 加载耗时日志输出
+- 完成时间: 2026-08-31 10:30
 
 ### Phase 2: 核心 API (Week 3-4)
 
@@ -93,7 +98,9 @@
 ### 2026-08-31
 - [x] Z1 服务器环境准备完成（磁盘清理 5GB）
 - [x] Z2 数据导入完成 + 验证通过
-- [ ] Z3 项目初始化 — 待开始
+- [x] Z3 项目初始化完成（Express + 结构拆分 + .env）
+- [x] Z4 数据加载层完成（JSON解析 + 内存索引 + 缓存）
+- [ ] Z5 Topics API — 待开始
 
 ## 技术笔记
 
