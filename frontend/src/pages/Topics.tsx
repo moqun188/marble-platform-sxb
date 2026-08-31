@@ -1,123 +1,156 @@
-import { useState, useEffect } from "react";
-import { getTopics, type Topic } from "../services/api";
+import { useEffect, useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
+import { fetchTopics } from '../services/api'
+import { generateMockTopics } from '../services/mock'
+import type { Topic, TopicFilters } from '../types/topic'
 
-const SUBJECTS = ["Science", "Mathematics", "English", "History", "Personal & Social Development", "Life Skills", "Computing", "Learning to Learn"];
-const TYPES = ["CONCEPTUAL", "PROCEDURAL", "REPRESENTATIONAL", "LANGUAGE", "META"];
+export default function Topics() {
+  const [topics, setTopics] = useState<Topic[]>([])
+  const [loading, setLoading] = useState(true)
+  const [usingMock, setUsingMock] = useState(false)
+  const [filters, setFilters] = useState<TopicFilters>({ page: 1, pageSize: 20 })
+  const [search, setSearch] = useState('')
 
-export default function TopicsPage() {
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({ subject: "", type: "", q: "", ageMin: "", ageMax: "" });
-  const [offset, setOffset] = useState(0);
-  const limit = 20;
+  useEffect(() => {
+    setLoading(true)
+    fetchTopics(filters)
+      .then((res) => {
+        setTopics(res.data)
+        setUsingMock(false)
+      })
+      .catch(() => {
+        // API 未就绪，使用 mock 数据
+        setTopics(generateMockTopics())
+        setUsingMock(true)
+      })
+      .finally(() => setLoading(false))
+  }, [filters.subject, filters.type])
 
-  const fetchTopics = async () => {
-    setLoading(true);
-    try {
-      const params: Record<string, string | number> = { limit, offset };
-      if (filters.subject) params.subject = filters.subject;
-      if (filters.type) params.type = filters.type;
-      if (filters.q) params.q = filters.q;
-      if (filters.ageMin) params.ageMin = +filters.ageMin;
-      if (filters.ageMax) params.ageMax = +filters.ageMax;
-      const res = await getTopics(params);
-      setTopics(res.data);
-      setTotal(res.total);
-    } catch (e) {
-      console.error(e);
+  // 客户端搜索 + 分页（mock 模式）
+  const filtered = useMemo(() => {
+    let result = topics
+    if (search) {
+      const q = search.toLowerCase()
+      result = result.filter((t) => t.name.toLowerCase().includes(q) || t.subject.toLowerCase().includes(q))
     }
-    setLoading(false);
-  };
+    if (filters.subject) {
+      result = result.filter((t) => t.subject === filters.subject)
+    }
+    return result
+  }, [topics, search, filters.subject])
 
-  useEffect(() => { fetchTopics(); }, [offset, filters.subject, filters.type]);
+  const total = filtered.length
+  const pageSize = filters.pageSize || 20
+  const page = filters.page || 1
+  const paged = usingMock ? filtered.slice((page - 1) * pageSize, page * pageSize) : filtered
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Topics ({total})</h2>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 bg-white p-4 rounded-lg shadow">
-        <select value={filters.subject} onChange={e => { setFilters(f => ({...f, subject: e.target.value})); setOffset(0); }}
-          className="border rounded px-3 py-1.5 text-sm">
-          <option value="">All Subjects</option>
-          {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select value={filters.type} onChange={e => { setFilters(f => ({...f, type: e.target.value})); setOffset(0); }}
-          className="border rounded px-3 py-1.5 text-sm">
-          <option value="">All Types</option>
-          {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <input type="number" placeholder="Min age" value={filters.ageMin}
-          onChange={e => setFilters(f => ({...f, ageMin: e.target.value}))}
-          className="border rounded px-3 py-1.5 text-sm w-24" />
-        <input type="number" placeholder="Max age" value={filters.ageMax}
-          onChange={e => setFilters(f => ({...f, ageMax: e.target.value}))}
-          className="border rounded px-3 py-1.5 text-sm w-24" />
-        <div className="flex gap-2 flex-1">
-          <input type="text" placeholder="Search..." value={filters.q}
-            onChange={e => setFilters(f => ({...f, q: e.target.value}))}
-            onKeyDown={e => e.key === "Enter" && fetchTopics()}
-            className="border rounded px-3 py-1.5 text-sm flex-1" />
-          <button onClick={fetchTopics}
-            className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700">
-            Search
-          </button>
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-bold">主题列表</h2>
+          {usingMock && (
+            <span className="text-xs text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded mt-1 inline-block">
+              ⚠️ 使用演示数据（后端 API 未就绪）
+            </span>
+          )}
         </div>
+        <span className="text-sm text-gray-500">共 {total} 个主题</span>
       </div>
 
-      {/* Table */}
-      {loading ? <p className="text-gray-500">Loading...</p> : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100 text-left">
-              <tr>
-                <th className="px-4 py-2">Name</th>
-                <th className="px-4 py-2">Subject</th>
-                <th className="px-4 py-2">Domain</th>
-                <th className="px-4 py-2">Type</th>
-                <th className="px-4 py-2">Age</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topics.map(t => (
-                <tr key={t.id} className="border-t hover:bg-blue-50 cursor-pointer">
-                  <td className="px-4 py-2 font-medium">{t.name}</td>
-                  <td className="px-4 py-2">
-                    <span className="inline-block w-2 h-2 rounded-full mr-1" style={{background: getSubjectColor(t.subject)}} />
-                    {t.subject}
+      {/* 筛选器 */}
+      <div className="flex gap-3 mb-4">
+        <select
+          className="px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700"
+          value={filters.subject || ''}
+          onChange={(e) => setFilters({ ...filters, subject: e.target.value || undefined, page: 1 })}
+        >
+          <option value="">全部学科</option>
+          <option value="Science">Science</option>
+          <option value="Mathematics">Mathematics</option>
+          <option value="English">English</option>
+          <option value="History">History</option>
+          <option value="Computing">Computing</option>
+          <option value="Life Skills">Life Skills</option>
+          <option value="Learning to Learn">Learning to Learn</option>
+          <option value="Personal & Social Development">Personal & Social Dev</option>
+        </select>
+        <input
+          type="text"
+          placeholder="搜索主题名称..."
+          className="px-3 py-2 text-sm border rounded-lg w-64 bg-white dark:bg-gray-800 dark:border-gray-700"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setFilters({ ...filters, page: 1 })
+          }}
+        />
+      </div>
+
+      {/* 表格 */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-[var(--color-border)] overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 dark:bg-gray-800 text-left">
+            <tr>
+              <th className="px-4 py-3 font-medium">名称</th>
+              <th className="px-4 py-3 font-medium">学科</th>
+              <th className="px-4 py-3 font-medium">年龄段</th>
+              <th className="px-4 py-3 font-medium">类型</th>
+              <th className="px-4 py-3 font-medium">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">加载中...</td></tr>
+            ) : paged.length === 0 ? (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">无匹配结果</td></tr>
+            ) : (
+              paged.map((t) => (
+                <tr key={t.id} className="border-t dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  <td className="px-4 py-3 font-medium">{t.name}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{t.subject}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{t.ageRange || '-'}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2 py-0.5 rounded ${
+                      t.type === 'core' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                    }`}>
+                      {t.type || '-'}
+                    </span>
                   </td>
-                  <td className="px-4 py-2 text-gray-600">{t.domain}</td>
-                  <td className="px-4 py-2">
-                    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{t.type}</span>
+                  <td className="px-4 py-3">
+                    <Link to={`/topics/${t.id}`} className="text-blue-500 hover:underline">
+                      详情
+                    </Link>
                   </td>
-                  <td className="px-4 py-2 text-gray-600">{t.ageRangeStart}-{t.ageRangeEnd}</td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* 分页 */}
+      {usingMock && (
+        <div className="flex justify-between items-center mt-4 text-sm text-gray-500">
+          <span>第 {page} 页，共 {Math.ceil(total / pageSize)} 页</span>
+          <div className="flex gap-2">
+            <button
+              className="px-3 py-1 border rounded disabled:opacity-40 dark:border-gray-700"
+              disabled={page === 1}
+              onClick={() => setFilters({ ...filters, page: page - 1 })}
+            >
+              上一页
+            </button>
+            <button
+              className="px-3 py-1 border rounded disabled:opacity-40 dark:border-gray-700"
+              disabled={page * pageSize >= total}
+              onClick={() => setFilters({ ...filters, page: page + 1 })}
+            >
+              下一页
+            </button>
+          </div>
         </div>
       )}
-
-      {/* Pagination */}
-      <div className="flex justify-between items-center">
-        <span className="text-sm text-gray-500">Showing {offset+1}-{Math.min(offset+limit, total)} of {total}</span>
-        <div className="flex gap-2">
-          <button disabled={offset === 0} onClick={() => setOffset(o => Math.max(0, o - limit))}
-            className="px-3 py-1 border rounded text-sm disabled:opacity-50">Previous</button>
-          <button disabled={offset + limit >= total} onClick={() => setOffset(o => o + limit)}
-            className="px-3 py-1 border rounded text-sm disabled:opacity-50">Next</button>
-        </div>
-      </div>
     </div>
-  );
-}
-
-function getSubjectColor(subject: string): string {
-  const colors: Record<string, string> = {
-    Science: "#4CAF50", Mathematics: "#2196F3", English: "#FF9800", History: "#9C27B0",
-    "Personal & Social Development": "#E91E63", "Life Skills": "#00BCD4",
-    Computing: "#607D8B", "Learning to Learn": "#795548",
-  };
-  return colors[subject] || "#9E9E9E";
+  )
 }

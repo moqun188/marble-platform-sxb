@@ -1,111 +1,74 @@
-import axios from "axios";
+import type {
+  Topic,
+  TopicFilters,
+  PaginatedResponse,
+  SubjectStat,
+  Domain,
+  Cluster,
+  Standard,
+  GraphData,
+} from '../types/topic'
 
-const api = axios.create({
-  baseURL: "/api",
-  timeout: 10000,
-});
+const BASE = '/api'
 
-export interface Topic {
-  id: string;
-  type: string;
-  subject: string;
-  domain: string | null;
-  name: string | null;
-  description: string;
-  ageRangeStart: number | null;
-  ageRangeEnd: number | null;
-  centrality: number | null;
-  evidence: string[];
-  assessmentPrompt: string | null;
-  standards: string[];
+async function get<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
+  const url = new URL(path, window.location.origin)
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== '') url.searchParams.set(k, String(v))
+    })
+  }
+  const res = await fetch(url.toString())
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`)
+  return res.json()
 }
 
-export interface GraphNode {
-  id: string;
-  label: string;
-  subject: string;
-  domain: string;
-  ageStart: number;
-  ageEnd: number;
-  type: string;
-  centrality: number;
+/** 主题列表 */
+export function fetchTopics(filters?: TopicFilters): Promise<PaginatedResponse<Topic>> {
+  return get(`${BASE}/topics`, filters as Record<string, string | number | undefined>)
 }
 
-export interface GraphEdge {
-  source: string;
-  target: string;
-  strength: "hard" | "soft";
-  reason: string;
+/** 主题详情 */
+export function fetchTopic(id: string): Promise<Topic> {
+  return get(`${BASE}/topics/${id}`)
 }
 
-export interface GraphData {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
+/** 前置依赖 */
+export function fetchPrereqs(id: string): Promise<Topic[]> {
+  return get(`${BASE}/topics/${id}/prereqs`)
 }
 
-export interface Subject {
-  name: string;
-  count: number;
-  domains: string[];
+/** 解锁链 */
+export function fetchUnlocks(id: string): Promise<Topic[]> {
+  return get(`${BASE}/topics/${id}/unlocks`)
 }
 
-export interface Cluster {
-  subject: string;
-  domain: string;
-  ageRangeStart: number;
-  summary: string;
+/** 学习路径 */
+export function fetchPath(id: string): Promise<Topic[]> {
+  return get(`${BASE}/topics/${id}/path`)
 }
 
-export async function getTopics(params?: {
-  subject?: string;
-  domain?: string;
-  type?: string;
-  ageMin?: number;
-  ageMax?: number;
-  q?: string;
-  limit?: number;
-  offset?: number;
-}) {
-  const { data } = await api.get("/topics", { params });
-  return data as { total: number; offset: number; limit: number; data: Topic[] };
+/** 学科统计 */
+export function fetchSubjects(): Promise<SubjectStat[]> {
+  return get(`${BASE}/subjects`)
 }
 
-export async function getTopic(id: string) {
-  const { data } = await api.get(`/topics/${id}`);
-  return data as Topic;
+/** 领域列表 */
+export function fetchDomains(): Promise<Domain[]> {
+  return get(`${BASE}/domains`)
 }
 
-export async function getTopicPrereqs(id: string) {
-  const { data } = await api.get(`/topics/${id}/prereqs`);
-  return data as (Topic & { strength: string; reason: string })[];
+/** 领域摘要 */
+export function fetchClusters(): Promise<Cluster[]> {
+  return get(`${BASE}/clusters`)
 }
 
-export async function getTopicUnlocks(id: string) {
-  const { data } = await api.get(`/topics/${id}/unlocks`);
-  return data as (Topic & { strength: string; reason: string })[];
+/** 课程标准 */
+export function fetchStandards(): Promise<Standard[]> {
+  return get(`${BASE}/standards`)
 }
 
-export async function getTopicPath(id: string) {
-  const { data } = await api.get(`/topics/${id}/path`);
-  return data as Topic[];
-}
-
-export async function getSubjects() {
-  const { data } = await api.get("/subjects");
-  return data as Subject[];
-}
-
-export async function getClusters(subject?: string) {
-  const { data } = await api.get("/clusters", { params: { subject } });
-  return data as Cluster[];
-}
-
-export async function getGraph(subject?: string) {
-  const { data } = await api.get("/graph", { params: { subject } });
-  return data as GraphData;
-}
-
-export async function getStandards(curriculum?: string) {
-  const { data } = await api.get("/standards", { params: { curriculum } });
-  return data;
+/** 完整图数据 */
+export function fetchGraph(): Promise<GraphData> {
+  return get(`${BASE}/graph`)
 }
