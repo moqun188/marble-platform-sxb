@@ -1,152 +1,87 @@
-import { useEffect, useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
-import { fetchTopics } from '../services/api'
-import { generateMockTopics } from '../services/mock'
-import type { Topic, TopicFilters } from '../types/topic'
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { fetchTopics } from "../services/api";
+import type { Topic } from "../types/topic";
 
-export default function Topics() {
-  const [topics, setTopics] = useState<Topic[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [usingMock, setUsingMock] = useState(false)
-  const [search, setSearch] = useState('')
-  const [subjectFilter, setSubjectFilter] = useState('')
-  const [page, setPage] = useState(0)
-  const pageSize = 50
+const SUBJECTS = ["Science", "Mathematics", "English", "History", "Personal & Social Development", "Life Skills", "Computing", "Learning to Learn"];
+const TYPES = ["CONCEPTUAL", "PROCEDURAL", "REPRESENTATIONAL", "LANGUAGE", "META"];
+const COLORS: Record<string, string> = {
+  Science: "#4CAF50", Mathematics: "#2196F3", English: "#FF9800", History: "#9C27B0",
+  "Personal & Social Development": "#E91E63", "Life Skills": "#00BCD4",
+  Computing: "#607D8B", "Learning to Learn": "#795548",
+};
 
-  useEffect(() => {
-    setLoading(true)
-    const filters: TopicFilters = { offset: page * pageSize, limit: pageSize }
-    if (subjectFilter) filters.subject = subjectFilter
+export default function TopicsPage() {
+  const navigate = useNavigate();
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({ subject: "", type: "", search: "" });
+  const [offset, setOffset] = useState(0);
+  const limit = 20;
 
-    fetchTopics(filters)
-      .then((res) => {
-        setTopics(res.data)
-        setTotal(res.total)
-        setUsingMock(false)
-      })
-      .catch(() => {
-        const mock = generateMockTopics()
-        setTopics(mock)
-        setTotal(mock.length)
-        setUsingMock(true)
-      })
-      .finally(() => setLoading(false))
-  }, [subjectFilter, page])
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetchTopics({ subject: filters.subject, type: filters.type, search: filters.search, limit, offset });
+      setTopics(res.data);
+      setTotal(res.total);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
 
-  // 客户端搜索过滤（mock 模式或实时搜索）
-  const filtered = useMemo(() => {
-    if (!search) return topics
-    const q = search.toLowerCase()
-    return topics.filter((t) => t.name.toLowerCase().includes(q) || t.subject.toLowerCase().includes(q) || t.domain?.toLowerCase().includes(q))
-  }, [topics, search])
-
-  const totalPages = Math.ceil(total / pageSize)
+  useEffect(() => { load(); }, [offset, filters.subject, filters.type]);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-bold">主题列表</h2>
-          {usingMock && (
-            <span className="text-xs text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded mt-1 inline-block">
-              ⚠️ 使用演示数据
-            </span>
-          )}
-        </div>
-        <span className="text-sm text-gray-500">共 {total} 个主题</span>
-      </div>
-
-      {/* 筛选器 */}
-      <div className="flex gap-3 mb-4">
-        <select
-          className="px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700"
-          value={subjectFilter}
-          onChange={(e) => { setSubjectFilter(e.target.value); setPage(0) }}
-        >
-          <option value="">全部学科</option>
-          <option value="Science">Science</option>
-          <option value="Mathematics">Mathematics</option>
-          <option value="English">English</option>
-          <option value="History">History</option>
-          <option value="Computing">Computing</option>
-          <option value="Life Skills">Life Skills</option>
-          <option value="Learning to Learn">Learning to Learn</option>
-          <option value="Personal & Social Development">Personal & Social Dev</option>
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold">Topics ({total})</h2>
+      <div className="flex flex-wrap gap-3 bg-white p-4 rounded-lg shadow">
+        <select value={filters.subject} onChange={e => { setFilters(f => ({...f, subject: e.target.value})); setOffset(0); }}
+          className="border rounded px-3 py-1.5 text-sm">
+          <option value="">All Subjects</option>
+          {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <input
-          type="text"
-          placeholder="搜索主题名称..."
-          className="px-3 py-2 text-sm border rounded-lg w-64 bg-white dark:bg-gray-800 dark:border-gray-700"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <select value={filters.type} onChange={e => { setFilters(f => ({...f, type: e.target.value})); setOffset(0); }}
+          className="border rounded px-3 py-1.5 text-sm">
+          <option value="">All Types</option>
+          {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <div className="flex gap-2 flex-1">
+          <input type="text" placeholder="Search..." value={filters.search}
+            onChange={e => setFilters(f => ({...f, search: e.target.value}))}
+            onKeyDown={e => e.key === "Enter" && load()} className="border rounded px-3 py-1.5 text-sm flex-1" />
+          <button onClick={load} className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700">Search</button>
+        </div>
       </div>
-
-      {/* 表格 */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-[var(--color-border)] overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-800 text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">名称</th>
-              <th className="px-4 py-3 font-medium">学科</th>
-              <th className="px-4 py-3 font-medium">领域</th>
-              <th className="px-4 py-3 font-medium">年龄段</th>
-              <th className="px-4 py-3 font-medium">类型</th>
-              <th className="px-4 py-3 font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">加载中...</td></tr>
-            ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">无匹配结果</td></tr>
-            ) : (
-              filtered.map((t) => (
-                <tr key={t.id} className="border-t dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td className="px-4 py-3 font-medium">{t.name}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{t.subject}</td>
-                  <td className="px-4 py-3 text-gray-500 dark:text-gray-500 text-xs">{t.domain || '-'}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                    {t.ageRangeStart && t.ageRangeEnd ? `${t.ageRangeStart}-${t.ageRangeEnd}` : '-'}
+      {loading ? <p className="text-gray-500">Loading...</p> : (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100 text-left">
+              <tr><th className="px-4 py-2">Name</th><th className="px-4 py-2">Subject</th><th className="px-4 py-2">Domain</th><th className="px-4 py-2">Type</th><th className="px-4 py-2">Age</th></tr>
+            </thead>
+            <tbody>
+              {topics.map(t => (
+                <tr key={t.id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/topic/${t.id}`)}>
+                  <td className="px-4 py-2 font-medium text-blue-700 hover:underline">{t.name}</td>
+                  <td className="px-4 py-2">
+                    <span className="inline-block w-2 h-2 rounded-full mr-1" style={{background: COLORS[t.subject] || "#999"}} />{t.subject}
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
-                      {t.type || '-'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link to={`/topics/${t.id}`} className="text-blue-500 hover:underline">
-                      详情
-                    </Link>
-                  </td>
+                  <td className="px-4 py-2 text-gray-600">{t.domain}</td>
+                  <td className="px-4 py-2"><span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{t.type}</span></td>
+                  <td className="px-4 py-2 text-gray-600">{t.ageRangeStart}-{t.ageRangeEnd}</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* 分页 */}
-      <div className="flex justify-between items-center mt-4 text-sm text-gray-500">
-        <span>第 {page + 1} 页，共 {totalPages} 页</span>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div className="flex justify-between items-center">
+        <span className="text-sm text-gray-500">Showing {offset+1}-{Math.min(offset+limit, total)} of {total}</span>
         <div className="flex gap-2">
-          <button
-            className="px-3 py-1 border rounded disabled:opacity-40 dark:border-gray-700"
-            disabled={page === 0}
-            onClick={() => setPage(page - 1)}
-          >
-            上一页
-          </button>
-          <button
-            className="px-3 py-1 border rounded disabled:opacity-40 dark:border-gray-700"
-            disabled={page + 1 >= totalPages}
-            onClick={() => setPage(page + 1)}
-          >
-            下一页
-          </button>
+          <button disabled={offset === 0} onClick={() => setOffset(o => Math.max(0, o - limit))} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Previous</button>
+          <button disabled={offset + limit >= total} onClick={() => setOffset(o => o + limit)} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Next</button>
         </div>
       </div>
     </div>
-  )
+  );
 }

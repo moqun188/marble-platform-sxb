@@ -1,174 +1,209 @@
-import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { fetchTopic, fetchPrereqs, fetchUnlocks, fetchPath } from '../services/api'
-import { generateMockTopic, generateMockPrereqs, generateMockUnlocks, generateMockPath } from '../services/mock'
-import type { Topic } from '../types/topic'
+import { useState, useEffect, useRef } from "react";
+import { useParams, Link } from "react-router-dom";
+import cytoscape from "cytoscape";
+import { fetchTopic, fetchPrereqs, fetchUnlocks, fetchPath } from "../services/api";
+import type { Topic } from "../types/topic";
+
+const COLORS: Record<string, string> = {
+  Science: "#4CAF50", Mathematics: "#2196F3", English: "#FF9800", History: "#9C27B0",
+  "Personal & Social Development": "#E91E63", "Life Skills": "#00BCD4",
+  Computing: "#607D8B", "Learning to Learn": "#795548",
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  CONCEPTUAL: "Conceptual", PROCEDURAL: "Procedural",
+  REPRESENTATIONAL: "Representational", LANGUAGE: "Language", META: "Meta",
+};
 
 export default function TopicDetail() {
-  const { id } = useParams<{ id: string }>()
-  const [topic, setTopic] = useState<Topic | null>(null)
-  const [prereqs, setPrereqs] = useState<Topic[]>([])
-  const [unlocks, setUnlocks] = useState<Topic[]>([])
-  const [path, setPath] = useState<Topic[]>([])
-  const [loading, setLoading] = useState(true)
-  const [usingMock, setUsingMock] = useState(false)
+  const { id } = useParams<{ id: string }>();
+  const [topic, setTopic] = useState<Topic | null>(null);
+  const [prereqs, setPrereqs] = useState<Topic[]>([]);
+  const [unlocks, setUnlocks] = useState<Topic[]>([]);
+  const [path, setPath] = useState<Topic[]>([]);
+  const [loading, setLoading] = useState(true);
+  const graphRef = useRef<HTMLDivElement>(null);
+  const cyRef = useRef<cytoscape.Core | null>(null);
 
   useEffect(() => {
-    if (!id) return
-    setLoading(true)
-
+    if (!id) return;
+    setLoading(true);
+    cyRef.current?.destroy();
     Promise.all([
-      fetchTopic(id).catch(() => null),
-      fetchPrereqs(id).catch(() => []),
-      fetchUnlocks(id).catch(() => []),
-      fetchPath(id).catch(() => []),
+      fetchTopic(id), fetchPrereqs(id), fetchUnlocks(id), fetchPath(id),
     ]).then(([t, p, u, pa]) => {
-      if (t) {
-        setTopic(t)
-        setPrereqs(p)
-        setUnlocks(u)
-        setPath(pa)
-        setUsingMock(false)
-      } else {
-        setTopic(generateMockTopic(id))
-        setPrereqs(generateMockPrereqs(id))
-        setUnlocks(generateMockUnlocks(id))
-        setPath(generateMockPath(id))
-        setUsingMock(true)
-      }
-    }).finally(() => setLoading(false))
-  }, [id])
+      setTopic(t); setPrereqs(p); setUnlocks(u); setPath(pa); setLoading(false);
+      renderLocalGraph(t, p, u);
+    }).catch((e) => { console.error(e); setLoading(false); });
+    return () => { cyRef.current?.destroy(); };
+  }, [id]);
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-gray-400">加载中...</div>
-  if (!topic) return (
-    <div className="text-center py-16">
-      <p className="text-gray-400 text-lg mb-4">主题未找到</p>
-      <Link to="/topics" className="text-blue-500 hover:underline">← 返回列表</Link>
-    </div>
-  )
+  const renderLocalGraph = (t: Topic, p: Topic[], u: Topic[]) => {
+    if (!graphRef.current || (p.length === 0 && u.length === 0)) return;
+    cyRef.current?.destroy();
+    const nodes = [
+      { data: { id: t.id, label: t.name || "", subject: t.subject, isCenter: true } },
+      ...p.map((pr) => ({ data: { id: pr.id, label: pr.name || "", subject: pr.subject, isCenter: false } })),
+      ...u.map((un) => ({ data: { id: un.id, label: un.name || "", subject: un.subject, isCenter: false } })),
+    ];
+    const edges = [
+      ...p.map((pr) => ({ data: { source: pr.id, target: t.id, strength: "hard" } })),
+      ...u.map((un) => ({ data: { source: t.id, target: un.id, strength: "hard" } })),
+    ];
+    cyRef.current = cytoscape({
+      container: graphRef.current,
+      elements: [...nodes, ...edges],
+      style: [
+        { selector: "node", style: {
+          label: "data(label)",
+          "background-color": (el: cytoscape.NodeSingular) => COLORS[el.data("subject")] || "#999",
+          width: (el: cytoscape.NodeSingular) => el.data("isCenter") ? 30 : 18,
+          height: (el: cytoscape.NodeSingular) => el.data("isCenter") ? 30 : 18,
+          "font-size": "9px", color: "#333", "text-valign": "bottom", "text-margin-y": 4,
+          "border-width": (el: cytoscape.NodeSingular) => el.data("isCenter") ? 3 : 0, "border-color": "#333",
+        } as cytoscape.Css.Node },
+        { selector: "edge", style: {
+          width: 2, "line-color": "#aaa", "target-arrow-color": "#aaa",
+          "target-arrow-shape": "triangle", "curve-style": "bezier",
+        } as cytoscape.Css.Edge },
+      ],
+      layout: { name: "breadthfirst", directed: true, spacingFactor: 1.5 },
+      userZoomingEnabled: true, userPanningEnabled: true,
+    });
+  };
+
+  if (loading) return <p className="text-gray-500 py-8">Loading topic...</p>;
+  if (!topic) return <p className="text-red-500 py-8">Topic not found</p>;
+  const subjectColor = COLORS[topic.subject] || "#999";
 
   return (
-    <div className="max-w-4xl">
-      <Link to="/topics" className="text-sm text-blue-500 hover:underline mb-4 inline-block">
-        ← 返回列表
-      </Link>
+    <div className="space-y-6">
+      <nav className="text-sm text-gray-500 flex items-center gap-2">
+        <Link to="/topics" className="hover:text-blue-600">Topics</Link>
+        <span>/</span>
+        <span className="text-gray-900 font-medium">{topic.name}</span>
+      </nav>
 
-      {usingMock && (
-        <span className="text-xs text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded mb-3 inline-block">
-          ⚠️ 使用演示数据
-        </span>
-      )}
-
-      {/* 标题区 */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2">{topic.name}</h2>
-        <div className="flex gap-2 flex-wrap">
-          {topic.subject && <Tag color="blue">{topic.subject}</Tag>}
-          {topic.domain && <Tag color="purple">{topic.domain}</Tag>}
-          {topic.ageRangeStart && topic.ageRangeEnd && (
-            <Tag color="green">{topic.ageRangeStart}-{topic.ageRangeEnd} 岁</Tag>
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="w-3 h-3 rounded-full" style={{ background: subjectColor }} />
+              <span className="text-sm text-gray-500">{topic.subject}</span>
+              {topic.domain && <span className="text-sm text-gray-400">/ {topic.domain}</span>}
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-3">{topic.name}</h1>
+            <p className="text-gray-700 leading-relaxed">{topic.description}</p>
+          </div>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <span className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{topic.id}</span>
+            {topic.type && (
+              <span className="text-xs px-2 py-1 rounded" style={{ background: subjectColor + "20", color: subjectColor }}>
+                {TYPE_LABELS[topic.type] || topic.type}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t text-sm">
+          {topic.ageRangeStart != null && (
+            <div><span className="text-gray-500">Age:</span> <span className="font-medium">{topic.ageRangeStart}–{topic.ageRangeEnd}</span></div>
           )}
-          {topic.type && <Tag color="gray">{topic.type}</Tag>}
-          {topic.centrality !== undefined && (
-            <Tag color="gray">中心度: {topic.centrality.toFixed(3)}</Tag>
+          {topic.centrality != null && (
+            <div><span className="text-gray-500">Centrality:</span> <span className="font-medium">{topic.centrality.toFixed(3)}</span></div>
+          )}
+          {topic.standards && (
+            <div><span className="text-gray-500">Standards:</span> <span className="font-medium">{topic.standards.length}</span></div>
           )}
         </div>
       </div>
 
-      {/* 描述 */}
-      {topic.description && (
-        <Card title="📖 描述">
-          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{topic.description}</p>
-        </Card>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {topic.evidence && topic.evidence.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-5">
+            <h3 className="font-semibold text-gray-900 mb-3">Evidence of Mastery</h3>
+            <ul className="space-y-2">
+              {topic.evidence.map((e, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                  <span className="text-green-500 mt-0.5">✓</span>{e}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {topic.assessmentPrompt && (
+          <div className="bg-white rounded-lg shadow p-5">
+            <h3 className="font-semibold text-gray-900 mb-3">Assessment Prompt</h3>
+            <p className="text-sm text-gray-700 leading-relaxed italic">"{topic.assessmentPrompt.replace(/\{\{name\}\}/g, "the child")}"</p>
+          </div>
+        )}
+      </div>
 
-      {/* Evidence */}
-      {topic.evidence && topic.evidence.length > 0 && (
-        <Card title="✅ 学习证据">
-          <ul className="space-y-2">
-            {topic.evidence.map((e, i) => (
-              <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
-                <span className="text-green-500 mt-0.5 shrink-0">✓</span>
-                <span>{e}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
-      {/* Assessment Prompt */}
-      {topic.assessmentPrompt && (
-        <Card title="📝 评估提示">
-          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed italic">{topic.assessmentPrompt}</p>
-        </Card>
-      )}
-
-      {/* 课程标准 */}
-      {topic.standards && topic.standards.length > 0 && (
-        <Card title="📐 关联课程标准">
-          <div className="flex flex-wrap gap-2">
-            {topic.standards.map((s) => (
-              <span key={s} className="text-xs px-2.5 py-1 bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400 rounded-lg">
-                {s}
+      {path.length > 1 && (
+        <div className="bg-white rounded-lg shadow p-5">
+          <h3 className="font-semibold text-gray-900 mb-3">Learning Path ({path.length} steps)</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            {path.map((p, i) => (
+              <span key={p.id} className="flex items-center gap-1">
+                <Link to={`/topic/${p.id}`}
+                  className={`text-xs px-2 py-1 rounded ${p.id === id ? "bg-blue-600 text-white font-medium" : "bg-gray-100 hover:bg-gray-200 text-gray-700"}`}>
+                  {p.name}
+                </Link>
+                {i < path.length - 1 && <span className="text-gray-400">→</span>}
               </span>
             ))}
           </div>
-        </Card>
+        </div>
       )}
 
-      {/* 依赖关系 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-        <DepList title="⬆️ 前置依赖" items={prereqs} color="orange" empty="无前置要求" />
-        <DepList title="🔗 学习路径" items={path} color="blue" empty="入口主题" />
-        <DepList title="⬇️ 解锁主题" items={unlocks} color="green" empty="终端主题" />
-      </div>
-    </div>
-  )
-}
+      {(prereqs.length > 0 || unlocks.length > 0) && (
+        <div className="bg-white rounded-lg shadow p-5">
+          <h3 className="font-semibold text-gray-900 mb-3">Dependency Graph</h3>
+          <div ref={graphRef} className="bg-gray-50 rounded" style={{ height: "300px" }} />
+        </div>
+      )}
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-[var(--color-border)] p-5 mb-4">
-      <h3 className="font-semibold mb-3 text-sm">{title}</h3>
-      {children}
-    </div>
-  )
-}
-
-function Tag({ color, children }: { color: string; children: React.ReactNode }) {
-  const colors: Record<string, string> = {
-    blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    green: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    purple: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-    gray: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-  }
-  return <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${colors[color] || colors.gray}`}>{children}</span>
-}
-
-function DepList({ title, items, color, empty }: { title: string; items: Topic[]; color: string; empty: string }) {
-  const colorMap: Record<string, string> = {
-    orange: 'border-orange-200 bg-orange-50/50 dark:border-orange-900/40 dark:bg-orange-900/10',
-    blue: 'border-blue-200 bg-blue-50/50 dark:border-blue-900/40 dark:bg-blue-900/10',
-    green: 'border-green-200 bg-green-50/50 dark:border-green-900/40 dark:bg-green-900/10',
-  }
-  return (
-    <div className={`rounded-xl border p-4 ${colorMap[color] || ''}`}>
-      <h4 className="font-semibold text-sm mb-3">{title} ({items.length})</h4>
-      {items.length === 0 ? (
-        <p className="text-xs text-gray-400">{empty}</p>
-      ) : (
-        <ul className="space-y-2">
-          {items.map((t) => (
-            <li key={t.id}>
-              <Link to={`/topics/${t.id}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 shrink-0" />
-                {t.name}
+      {prereqs.length > 0 && (
+        <div className="bg-white rounded-lg shadow p-5">
+          <h3 className="font-semibold text-gray-900 mb-3">Prerequisites ({prereqs.length})</h3>
+          <div className="space-y-2">
+            {prereqs.map((p) => (
+              <Link key={p.id} to={`/topic/${p.id}`} className="flex items-center gap-3 p-3 rounded hover:bg-gray-50 border">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: COLORS[p.subject] || "#999" }} />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">{p.name}</div>
+                  <div className="text-xs text-gray-500">{p.subject} / {p.domain}</div>
+                </div>
               </Link>
-              {t.subject && <span className="text-[10px] text-gray-400 ml-3">{t.subject}</span>}
-            </li>
-          ))}
-        </ul>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {unlocks.length > 0 && (
+        <div className="bg-white rounded-lg shadow p-5">
+          <h3 className="font-semibold text-gray-900 mb-3">Unlocks ({unlocks.length})</h3>
+          <div className="space-y-2">
+            {unlocks.map((u) => (
+              <Link key={u.id} to={`/topic/${u.id}`} className="flex items-center gap-3 p-3 rounded hover:bg-gray-50 border">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: COLORS[u.subject] || "#999" }} />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">{u.name}</div>
+                  <div className="text-xs text-gray-500">{u.subject} / {u.domain}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {topic.standards && topic.standards.length > 0 && (
+        <div className="bg-white rounded-lg shadow p-5">
+          <h3 className="font-semibold text-gray-900 mb-3">Curriculum Standards ({topic.standards.length})</h3>
+          <div className="flex flex-wrap gap-2">
+            {topic.standards.map((s) => <span key={s} className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{s}</span>)}
+          </div>
+        </div>
       )}
     </div>
-  )
+  );
 }
