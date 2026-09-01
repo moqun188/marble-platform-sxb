@@ -8,7 +8,7 @@ const app = express();
 const PORT = 5174;
 const BACKEND = "http://127.0.0.1:3200";
 
-// Proxy /api requests to backend using native http
+// Proxy /api requests to backend
 app.use("/api", (req, res) => {
   const url = BACKEND + req.originalUrl;
   const proxyReq = http.request(url, {
@@ -25,12 +25,19 @@ app.use("/api", (req, res) => {
   req.pipe(proxyReq);
 });
 
-// Serve static files from frontend-static at project root
+// Serve static files with cache for assets, no-cache for HTML
 const staticDir = join(__dirname, "../../frontend-static");
-app.use(express.static(staticDir));
+app.use(express.static(staticDir, {
+  setHeaders: (res, path) => {
+    if (path.endsWith(".html")) {
+      res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    }
+  }
+}));
 
-// SPA fallback
+// SPA fallback - always no-cache
 app.get("*", (req, res) => {
+  res.set("Cache-Control", "no-cache, no-store, must-revalidate");
   res.sendFile(join(staticDir, "index.html"));
 });
 

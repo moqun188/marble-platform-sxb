@@ -22,7 +22,7 @@ export default function Graph() {
   const [nodeInfo, setNodeInfo] = useState<GraphData['nodes'][0] | null>(null)
   const [search, setSearch] = useState('')
   const [activeSubjects, setActiveSubjects] = useState<Set<string>>(new Set())
-  const [layoutName, setLayoutName] = useState<'cose' | 'circle' | 'concentric'>('cose')
+  const [layoutName, setLayoutName] = useState<'cose' | 'circle' | 'concentric' | 'grid'>('grid')
   const [showPath, setShowPath] = useState(false)
   const [pathNodes, setPathNodes] = useState<{ id: string; label: string; subject: string }[]>([])
 
@@ -305,7 +305,9 @@ export default function Graph() {
       ],
       layout: {
         name: layoutName,
-        animate: true,
+        animate: data ? data.nodes.length < 500 : false,
+        fit: true,
+        padding: 30,
         animationDuration: 800,
         ...(layoutName === 'cose' ? {
           idealEdgeLength: 120,
@@ -317,7 +319,7 @@ export default function Graph() {
           edgeElasticity: 100,
           nestingFactor: 1.2,
           gravity: 0.25,
-          numIter: 1500,
+          numIter: 500,
         } : {}),
         ...(layoutName === 'concentric' ? {
           concentric: (node: NodeSingular) => {
@@ -327,6 +329,7 @@ export default function Graph() {
           levelWidth: () => 2,
           minNodeSpacing: 60,
         } : {}),
+      ...layoutName === "grid" ? { condense: true, avoidOverlap: true } : {},
       } as cytoscape.LayoutOptions,
     })
 
@@ -356,16 +359,22 @@ export default function Graph() {
       setShowPath(false)
       setPathNodes([])
 
-      // 计算路径（但不自动显示，等用户点击按钮）
-      const path = findPath(nodeId)
-      if (path.length > 1) {
-        setPathNodes(path.map((id) => {
-          const nd = data.nodes.find((n) => n.id === id)
-          return { id, label: nd?.label || id, subject: nd?.subject || '' }
-        }))
-      } else {
-        setPathNodes([])
-      }
+      // 计算路径（延迟到下一帧，避免布局动画冲突）
+      requestAnimationFrame(() => {
+        try {
+          const path = findPath(nodeId)
+          if (path.length > 1) {
+            setPathNodes(path.map((id) => {
+              const nd = data.nodes.find((n) => n.id === id)
+              return { id, label: nd?.label || id, subject: nd?.subject || '' }
+            }))
+          } else {
+            setPathNodes([])
+          }
+        } catch {
+          setPathNodes([])
+        }
+      })
     })
 
     // 点击空白
@@ -379,9 +388,17 @@ export default function Graph() {
       }
     })
 
-    cyRef.current = cy
+    console.log("CY:", cy.nodes().length, "nodes", cy.edges().length, "container:", containerRef.current?.offsetWidth, "x", containerRef.current?.offsetHeight); cy.fit(undefined, 30);
 
-    return () => { cy.destroy() }
+    return () => {
+      try {
+        cy.stop()
+        cy.elements().stop()
+        cy.destroy()
+      } catch {
+        // ignore cleanup errors
+      }
+    }
   }, [data, layoutName, findPath])
 
   // 切换路径显示
@@ -464,13 +481,15 @@ export default function Graph() {
     if (!cy) return
     cy.layout({
       name: layoutName,
-      animate: true,
+      animate: data ? data.nodes.length < 500 : false,
+        fit: true,
+        padding: 30,
       animationDuration: 800,
       ...(layoutName === 'cose' ? {
         idealEdgeLength: 120,
         nodeRepulsion: 8000,
         gravity: 0.25,
-        numIter: 1500,
+        numIter: 500,
       } : {}),
     } as cytoscape.LayoutOptions).run()
   }, [layoutName])
@@ -533,6 +552,7 @@ export default function Graph() {
           <option value="cose">力导向布局</option>
           <option value="circle">环形布局</option>
           <option value="concentric">同心圆布局</option>
+          <option value="grid">网格布局</option>
         </select>
         <button onClick={runLayout} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700">
           🔄 重新布局
@@ -570,6 +590,7 @@ export default function Graph() {
         <div
           ref={containerRef}
           className="flex-1 bg-white dark:bg-gray-900 rounded-xl border border-[var(--color-border)]"
+          style={{ minHeight: "400px" }}
         />
 
         {/* 侧边面板 */}
