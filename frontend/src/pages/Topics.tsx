@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchTopics } from "../services/api";
 import type { Topic } from "../types/topic";
@@ -11,6 +11,9 @@ const COLORS: Record<string, string> = {
   Computing: "#607D8B", "Learning to Learn": "#795548",
 };
 
+const ROW_HEIGHT = 48;
+const OVERSCAN = 10;
+
 export default function TopicsPage() {
   const navigate = useNavigate();
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -18,7 +21,9 @@ export default function TopicsPage() {
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ subject: "", type: "", search: "" });
   const [offset, setOffset] = useState(0);
-  const limit = 20;
+  const [scrollTop, setScrollTop] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const limit = 200;
 
   const load = async () => {
     setLoading(true);
@@ -32,9 +37,23 @@ export default function TopicsPage() {
 
   useEffect(() => { load(); }, [offset, filters.subject, filters.type]);
 
+  const handleScroll = useCallback(() => {
+    if (containerRef.current) {
+      setScrollTop(containerRef.current.scrollTop);
+    }
+  }, []);
+
+  const containerHeight = 600;
+  const totalHeight = topics.length * ROW_HEIGHT;
+  const startIdx = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
+  const endIdx = Math.min(topics.length, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + OVERSCAN);
+  const visibleTopics = topics.slice(startIdx, endIdx);
+  const offsetY = startIdx * ROW_HEIGHT;
+
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">Topics ({total})</h2>
+
       <div className="flex flex-wrap gap-3 bg-white p-4 rounded-lg shadow">
         <select value={filters.subject} onChange={e => { setFilters(f => ({...f, subject: e.target.value})); setOffset(0); }}
           className="border rounded px-3 py-1.5 text-sm">
@@ -53,33 +72,65 @@ export default function TopicsPage() {
           <button onClick={load} className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700">Search</button>
         </div>
       </div>
+
       {loading ? <p className="text-gray-500">Loading...</p> : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
+          {/* Fixed header */}
           <table className="w-full text-sm">
-            <thead className="bg-gray-100 text-left">
-              <tr><th className="px-4 py-2">Name</th><th className="px-4 py-2">Subject</th><th className="px-4 py-2">Domain</th><th className="px-4 py-2">Type</th><th className="px-4 py-2">Age</th></tr>
+            <thead className="bg-gray-100 text-left sticky top-0 z-10">
+              <tr>
+                <th className="px-4 py-2 w-[40%]">Name</th>
+                <th className="px-4 py-2 w-[20%]">Subject</th>
+                <th className="px-4 py-2 w-[20%]">Domain</th>
+                <th className="px-4 py-2 w-[10%]">Type</th>
+                <th className="px-4 py-2 w-[10%]">Age</th>
+              </tr>
             </thead>
-            <tbody>
-              {topics.map(t => (
-                <tr key={t.id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/topic/${t.id}`)}>
-                  <td className="px-4 py-2 font-medium text-blue-700 hover:underline">{t.name}</td>
-                  <td className="px-4 py-2">
-                    <span className="inline-block w-2 h-2 rounded-full mr-1" style={{background: COLORS[t.subject] || "#999"}} />{t.subject}
-                  </td>
-                  <td className="px-4 py-2 text-gray-600">{t.domain}</td>
-                  <td className="px-4 py-2"><span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{t.type}</span></td>
-                  <td className="px-4 py-2 text-gray-600">{t.ageRangeStart}-{t.ageRangeEnd}</td>
-                </tr>
-              ))}
-            </tbody>
           </table>
+
+          {/* Virtual scrolled body */}
+          <div ref={containerRef} onScroll={handleScroll}
+            style={{ height: containerHeight, overflow: "auto" }}>
+            <div style={{ height: totalHeight, position: "relative" }}>
+              <div style={{ position: "absolute", top: offsetY, width: "100%" }}>
+                <table className="w-full text-sm">
+                  <tbody>
+                    {visibleTopics.map((t) => (
+                      <tr key={t.id}
+                        className="border-t hover:bg-blue-50 cursor-pointer transition-colors"
+                        style={{ height: ROW_HEIGHT }}
+                        onClick={() => navigate(`/topic/${t.id}`)}>
+                        <td className="px-4 py-2 font-medium text-blue-700 hover:underline w-[40%]">{t.name}</td>
+                        <td className="px-4 py-2 w-[20%]">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{background: COLORS[t.subject] || "#999"}} />
+                            {t.subject}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-gray-600 w-[20%] truncate">{t.domain}</td>
+                        <td className="px-4 py-2 w-[10%]">
+                          <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{t.type}</span>
+                        </td>
+                        <td className="px-4 py-2 text-gray-600 w-[10%]">{t.ageRangeStart}-{t.ageRangeEnd}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       )}
+
       <div className="flex justify-between items-center">
-        <span className="text-sm text-gray-500">Showing {offset+1}-{Math.min(offset+limit, total)} of {total}</span>
+        <span className="text-sm text-gray-500">
+          {total > 0 ? `Showing ${offset+1}-${Math.min(offset+limit, total)} of ${total}` : "No results"}
+        </span>
         <div className="flex gap-2">
-          <button disabled={offset === 0} onClick={() => setOffset(o => Math.max(0, o - limit))} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Previous</button>
-          <button disabled={offset + limit >= total} onClick={() => setOffset(o => o + limit)} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Next</button>
+          <button disabled={offset === 0} onClick={() => { setOffset(o => Math.max(0, o - limit)); setTopics([]); }}
+            className="px-3 py-1 border rounded text-sm disabled:opacity-50 hover:bg-gray-50">Previous</button>
+          <button disabled={offset + limit >= total} onClick={() => { setOffset(o => o + limit); setTopics([]); }}
+            className="px-3 py-1 border rounded text-sm disabled:opacity-50 hover:bg-gray-50">Next</button>
         </div>
       </div>
     </div>

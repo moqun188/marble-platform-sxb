@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { fetchTopics } from "../services/api";
 import type { Topic } from "../types/topic";
@@ -26,6 +26,9 @@ const SUBJECT_CN: Record<string, string> = {
   Computing: "计算思维", "Learning to Learn": "学会学习",
 };
 
+const ROW_HEIGHT = 48;
+const OVERSCAN = 10;
+
 export default function TopicsCN() {
   const navigate = useNavigate();
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -33,7 +36,9 @@ export default function TopicsCN() {
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ subject: "", type: "", search: "" });
   const [offset, setOffset] = useState(0);
-  const limit = 20;
+  const [scrollTop, setScrollTop] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const limit = 200;
 
   const load = async () => {
     setLoading(true);
@@ -47,11 +52,24 @@ export default function TopicsCN() {
 
   useEffect(() => { load(); }, [offset, filters.subject, filters.type]);
 
+  const handleScroll = useCallback(() => {
+    if (containerRef.current) {
+      setScrollTop(containerRef.current.scrollTop);
+    }
+  }, []);
+
+  const containerHeight = 600;
+  const totalHeight = topics.length * ROW_HEIGHT;
+  const startIdx = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
+  const endIdx = Math.min(topics.length, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + OVERSCAN);
+  const visibleTopics = topics.slice(startIdx, endIdx);
+  const offsetY = startIdx * ROW_HEIGHT;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">知识点列表 <span className="text-base text-gray-400 font-normal">（共 {total} 个）</span></h2>
-        <Link to="/graph" className="text-sm text-blue-600 hover:underline">查看知识图谱 →</Link>
+        <Link to="/cn/graph" className="text-sm text-blue-600 hover:underline">查看知识图谱 →</Link>
       </div>
 
       <div className="flex flex-wrap gap-3 bg-white p-4 rounded-lg shadow">
@@ -76,44 +94,58 @@ export default function TopicsCN() {
       {loading ? <p className="text-gray-500 text-center py-8">加载中...</p> : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left">
+            <thead className="bg-gray-50 text-left sticky top-0 z-10">
               <tr>
-                <th className="px-4 py-2 text-gray-600">知识点名称</th>
-                <th className="px-4 py-2 text-gray-600">学科</th>
-                <th className="px-4 py-2 text-gray-600">领域</th>
-                <th className="px-4 py-2 text-gray-600">类型</th>
-                <th className="px-4 py-2 text-gray-600">年龄</th>
+                <th className="px-4 py-2 w-[40%] text-gray-600">知识点名称</th>
+                <th className="px-4 py-2 w-[20%] text-gray-600">学科</th>
+                <th className="px-4 py-2 w-[20%] text-gray-600">领域</th>
+                <th className="px-4 py-2 w-[10%] text-gray-600">类型</th>
+                <th className="px-4 py-2 w-[10%] text-gray-600">年龄</th>
               </tr>
             </thead>
-            <tbody>
-              {topics.map(t => (
-                <tr key={t.id} className="border-t hover:bg-blue-50 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/cn/topic/${t.id}`)}>
-                  <td className="px-4 py-2.5 font-medium text-blue-700 hover:underline">{t.name}</td>
-                  <td className="px-4 py-2.5">
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full" style={{background: COLORS[t.subject] || "#999"}} />
-                      <span className="text-gray-700">{SUBJECT_CN[t.subject] || t.subject}</span>
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-gray-600">{t.domain}</td>
-                  <td className="px-4 py-2.5">
-                    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{t.type}</span>
-                  </td>
-                  <td className="px-4 py-2.5 text-gray-600">{t.ageRangeStart}-{t.ageRangeEnd}</td>
-                </tr>
-              ))}
-            </tbody>
           </table>
+
+          <div ref={containerRef} onScroll={handleScroll}
+            style={{ height: containerHeight, overflow: "auto" }}>
+            <div style={{ height: totalHeight, position: "relative" }}>
+              <div style={{ position: "absolute", top: offsetY, width: "100%" }}>
+                <table className="w-full text-sm">
+                  <tbody>
+                    {visibleTopics.map((t) => (
+                      <tr key={t.id}
+                        className="border-t hover:bg-blue-50 cursor-pointer transition-colors"
+                        style={{ height: ROW_HEIGHT }}
+                        onClick={() => navigate(`/cn/topic/${t.id}`)}>
+                        <td className="px-4 py-2.5 font-medium text-blue-700 hover:underline w-[40%]">{t.name}</td>
+                        <td className="px-4 py-2.5 w-[20%]">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{background: COLORS[t.subject] || "#999"}} />
+                            <span className="text-gray-700">{SUBJECT_CN[t.subject] || t.subject}</span>
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-600 w-[20%] truncate">{t.domain}</td>
+                        <td className="px-4 py-2.5 w-[10%]">
+                          <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{t.type}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-600 w-[10%]">{t.ageRangeStart}-{t.ageRangeEnd}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       <div className="flex justify-between items-center">
-        <span className="text-sm text-gray-500">第 {offset+1}-{Math.min(offset+limit, total)} 个，共 {total} 个</span>
+        <span className="text-sm text-gray-500">
+          {total > 0 ? `第 ${offset+1}-${Math.min(offset+limit, total)} 个，共 ${total} 个` : "无结果"}
+        </span>
         <div className="flex gap-2">
-          <button disabled={offset === 0} onClick={() => setOffset(o => Math.max(0, o - limit))}
+          <button disabled={offset === 0} onClick={() => { setOffset(o => Math.max(0, o - limit)); setTopics([]); }}
             className="px-3 py-1 border rounded text-sm disabled:opacity-50 hover:bg-gray-50">上一页</button>
-          <button disabled={offset + limit >= total} onClick={() => setOffset(o => o + limit)}
+          <button disabled={offset + limit >= total} onClick={() => { setOffset(o => o + limit); setTopics([]); }}
             className="px-3 py-1 border rounded text-sm disabled:opacity-50 hover:bg-gray-50">下一页</button>
         </div>
       </div>
