@@ -65,6 +65,18 @@
 - [x] 卡片布局
 - 完成时间: 2026-08-31 11:20
 
+#### X4 - 主题详情页 ✅ 已完成
+- [x] 基本信息展示（name, description, subject, domain, type, age, centrality）
+- [x] Evidence of Mastery 列表
+- [x] Assessment Prompt 展示
+- [x] 学习路径可视化（可点击跳转）
+- [x] 局部依赖图（Cytoscape.js breadthfirst 布局）
+- [x] Prerequisites + Unlocks 列表（可点击跳转）
+- [x] 课标映射展示
+- [x] Topics 列表点击跳转
+- 路由: `/topic/:id`
+- 完成时间: 2026-09-01
+
 #### X9 - 课程标准对齐页 ⏳ 待开始
 
 ### Phase 5: 优化上线 (Week 7-8)
@@ -89,6 +101,12 @@
 - [x] X8 领域摘要页完成
 - [x] 前端构建 + 部署（PM2 托管，端口 5174）
 - [x] Z14 联调测试通过（API 9 端点 + 前端页面）
+
+### 2026-09-01
+- [x] X4 主题详情页完成（详情 + 依赖图 + 学习路径 + 课标）
+- [x] 中文版完成（首页 + 列表 + 详情，/cn 路由）
+- [x] 中英文切换按钮
+- [x] Docker healthcheck 修复
 
 ## 技术栈
 - React 19 + TypeScript 6
