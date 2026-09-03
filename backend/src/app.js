@@ -10,11 +10,15 @@ import { logger } from "./utils/logger.js";
 import { loadData } from "./services/data.js";
 import { requestLogger } from "./middleware/request-logger.js";
 import { errorHandler, notFoundHandler } from "./middleware/error.js";
+import { apiLimiter, searchLimiter, graphLimiter } from "./middleware/rate-limiter.js";
 import topicsRouter from "./routes/topics.js";
 import metaRouter from "./routes/meta.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
+
+// Trust proxy (for X-Forwarded-For behind Docker/Nginx)
+app.set("trust proxy", 1);
 
 // Middleware
 app.use(cors({ origin: CONFIG.corsOrigin }));
@@ -22,27 +26,28 @@ app.use(compression());
 app.use(express.json());
 app.use(requestLogger);
 
+// Rate limiting
+app.use("/api/", apiLimiter);
+app.use("/api/topics", (req, res, next) => {
+  // Apply search limiter only to list endpoint with query params
+  if (req.query.q || req.query.search) {
+    return searchLimiter(req, res, next);
+  }
+  next();
+});
+app.use("/api/graph", graphLimiter);
+
 // Cache control for API responses
-app.use("/api/graph", (req, res, next) => {
-  res.set("Cache-Control", "public, max-age=300"); // 5min
+const cacheMiddleware = (seconds) => (req, res, next) => {
+  res.set("Cache-Control", `public, max-age=${seconds}`);
   next();
-});
-app.use("/api/subjects", (req, res, next) => {
-  res.set("Cache-Control", "public, max-age=300");
-  next();
-});
-app.use("/api/domains", (req, res, next) => {
-  res.set("Cache-Control", "public, max-age=300");
-  next();
-});
-app.use("/api/clusters", (req, res, next) => {
-  res.set("Cache-Control", "public, max-age=300");
-  next();
-});
-app.use("/api/standards", (req, res, next) => {
-  res.set("Cache-Control", "public, max-age=300");
-  next();
-});
+};
+
+app.use("/api/graph", cacheMiddleware(300));
+app.use("/api/subjects", cacheMiddleware(300));
+app.use("/api/domains", cacheMiddleware(300));
+app.use("/api/clusters", cacheMiddleware(300));
+app.use("/api/standards", cacheMiddleware(300));
 
 // Load data on startup
 loadData();
