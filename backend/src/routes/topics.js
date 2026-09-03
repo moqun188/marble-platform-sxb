@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { getTopics, getById, getPrereqMap, getUnlockMap } from "../services/data.js";
+import { validateTopicId, validatePagination, validateSubject, validateTopicType, sanitizeSearch } from "../middleware/validate.js";
 
 const router = Router();
 
 // GET /api/topics — list with filtering
-router.get("/", (req, res) => {
+router.get("/", validatePagination, validateSubject, validateTopicType, sanitizeSearch, (req, res) => {
   let result = getTopics();
   const { subject, domain, type, ageMin, ageMax, q, limit, offset } = req.query;
 
@@ -21,22 +22,22 @@ router.get("/", (req, res) => {
   }
 
   const total = result.length;
-  const off = +(offset || 0);
-  const lim = Math.min(+(limit || 50), 200);
+  const off = Math.max(0, +(offset || 0));
+  const lim = Math.min(Math.max(1, +(limit || 50)), 500);
   result = result.slice(off, off + lim);
 
   res.json({ total, offset: off, limit: lim, data: result });
 });
 
 // GET /api/topics/:id — single topic
-router.get("/:id", (req, res) => {
+router.get("/:id", validateTopicId, (req, res) => {
   const topic = getById().get(req.params.id);
   if (!topic) return res.status(404).json({ error: "Topic not found" });
   res.json(topic);
 });
 
 // GET /api/topics/:id/prereqs — prerequisites
-router.get("/:id/prereqs", (req, res) => {
+router.get("/:id/prereqs", validateTopicId, (req, res) => {
   const byId = getById();
   const edges = getPrereqMap().get(req.params.id) || [];
   const result = edges.map((d) => ({
@@ -48,7 +49,7 @@ router.get("/:id/prereqs", (req, res) => {
 });
 
 // GET /api/topics/:id/unlocks — unlocked topics
-router.get("/:id/unlocks", (req, res) => {
+router.get("/:id/unlocks", validateTopicId, (req, res) => {
   const byId = getById();
   const edges = getUnlockMap().get(req.params.id) || [];
   const result = edges.map((d) => ({
@@ -59,8 +60,8 @@ router.get("/:id/unlocks", (req, res) => {
   res.json(result);
 });
 
-// GET /api/topics/:id/path — learning path from entry to target
-router.get("/:id/path", (req, res) => {
+// GET /api/topics/:id/path — learning path
+router.get("/:id/path", validateTopicId, (req, res) => {
   const byId = getById();
   const prereqMap = getPrereqMap();
   const target = req.params.id;
@@ -87,4 +88,3 @@ router.get("/:id/path", (req, res) => {
 });
 
 export default router;
-
