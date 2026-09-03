@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 
@@ -23,38 +24,93 @@ function Loading() {
 function Layout() {
   const location = useLocation();
   const isCN = location.pathname.startsWith("/cn");
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const navLinks = isCN
+    ? [
+        { to: "/cn/topics", label: "知识点" },
+        { to: "/cn/graph", label: "图谱" },
+        { to: "/cn/subjects", label: "学科" },
+        { to: "/cn/clusters", label: "家长" },
+      ]
+    : [
+        { to: "/topics", label: "Topics" },
+        { to: "/graph", label: "Graph" },
+        { to: "/subjects", label: "Subjects" },
+        { to: "/clusters", label: "Clusters" },
+      ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-6">
-          <Link to={isCN ? "/cn" : "/"} className="text-xl font-bold text-blue-600">
-            Marble {isCN ? "知识图谱" : "Knowledge Graph"}
+      <header className="bg-white shadow-sm border-b sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+          {/* Logo */}
+          <Link to={isCN ? "/cn" : "/"} className="text-lg sm:text-xl font-bold text-blue-600 shrink-0">
+            {isCN ? "知识图谱" : "Marble"}
           </Link>
-          <nav className="flex gap-4 text-sm">
-            {isCN ? (
-              <>
-                <Link to="/cn/topics" className="text-gray-600 hover:text-blue-600">知识点</Link>
-                <Link to="/cn/graph" className="text-gray-600 hover:text-blue-600">图谱</Link>
-                <Link to="/cn/subjects" className="text-gray-600 hover:text-blue-600">学科</Link>
-                <Link to="/cn/clusters" className="text-gray-600 hover:text-blue-600">家长</Link>
-              </>
-            ) : (
-              <>
-                <Link to="/topics" className="text-gray-600 hover:text-blue-600">Topics</Link>
-                <Link to="/graph" className="text-gray-600 hover:text-blue-600">Graph</Link>
-                <Link to="/subjects" className="text-gray-600 hover:text-blue-600">Subjects</Link>
-                <Link to="/clusters" className="text-gray-600 hover:text-blue-600">Clusters</Link>
-              </>
-            )}
+
+          {/* Desktop nav */}
+          <nav className="hidden md:flex gap-4 text-sm">
+            {navLinks.map((l) => (
+              <Link key={l.to} to={l.to} className="text-gray-600 hover:text-blue-600 transition-colors">
+                {l.label}
+              </Link>
+            ))}
           </nav>
-          <div className="ml-auto flex gap-2 text-sm">
-            <Link to="/cn" className={`px-2 py-1 rounded ${isCN ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:text-blue-600"}`}>中文</Link>
-            <Link to="/" className={`px-2 py-1 rounded ${!isCN ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:text-blue-600"}`}>EN</Link>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Language switch */}
+          <div className="hidden sm:flex gap-1 text-sm">
+            <Link to="/cn" className={`px-2 py-1 rounded transition-colors ${isCN ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:text-blue-600"}`}>
+              中文
+            </Link>
+            <Link to="/" className={`px-2 py-1 rounded transition-colors ${!isCN ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:text-blue-600"}`}>
+              EN
+            </Link>
           </div>
+
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden p-2 text-gray-600 hover:text-blue-600"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {menuOpen
+                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              }
+            </svg>
+          </button>
         </div>
+
+        {/* Mobile menu */}
+        {menuOpen && (
+          <div className="md:hidden border-t bg-white px-4 py-3 space-y-2">
+            {navLinks.map((l) => (
+              <Link key={l.to} to={l.to}
+                onClick={() => setMenuOpen(false)}
+                className="block py-2 text-gray-700 hover:text-blue-600 border-b border-gray-100 last:border-0">
+                {l.label}
+              </Link>
+            ))}
+            <div className="flex gap-2 pt-2">
+              <Link to="/cn" onClick={() => setMenuOpen(false)}
+                className={`px-3 py-1.5 rounded text-sm ${isCN ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
+                中文
+              </Link>
+              <Link to="/" onClick={() => setMenuOpen(false)}
+                className={`px-3 py-1.5 rounded text-sm ${!isCN ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
+                EN
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
-      <main className="max-w-7xl mx-auto px-4 py-6">
+
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/" element={<Home />} />
