@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-
 import { fetchStandards } from "../services/api";
 
 interface Curriculum {
@@ -17,17 +16,17 @@ interface Curriculum {
   }>;
 }
 
-const CURRICULUM_INFO: Record<string, { color: string; icon: string; shortName: string }> = {
-  "uk-nc-2013": { color: "#7C3AED", icon: "🇬🇧", shortName: "UK National Curriculum" },
-  "ccss-ela": { color: "#EA580C", icon: "📖", shortName: "Common Core ELA" },
-  "ccss-math": { color: "#2563EB", icon: "🔢", shortName: "Common Core Math" },
-  "ngss-k5": { color: "#16A34A", icon: "🔬", shortName: "NGSS K-5" },
-  "ngss-ms": { color: "#059669", icon: "🧪", shortName: "NGSS Middle School" },
-  "ib-pyp-pspe": { color: "#DB2777", icon: "🌍", shortName: "IB PYP PSPE" },
-  "c3-social-studies": { color: "#9333EA", icon: "🏛️", shortName: "C3 Social Studies" },
+const CURRICULUM_INFO: Record<string, { color: string; icon: string; cn: string }> = {
+  "uk-nc-2013": { color: "#7C3AED", icon: "🇬🇧", cn: "英国国家课程" },
+  "ccss-ela": { color: "#EA580C", icon: "📖", cn: "美国共同核心·英语" },
+  "ccss-math": { color: "#2563EB", icon: "🔢", cn: "美国共同核心·数学" },
+  "ngss-k5": { color: "#16A34A", icon: "🔬", cn: "新一代科学标准 K-5" },
+  "ngss-ms": { color: "#059669", icon: "🧪", cn: "新一代科学标准·初中" },
+  "ib-pyp-pspe": { color: "#DB2777", icon: "🌍", cn: "IB PYP 个人社会体育" },
+  "c3-social-studies": { color: "#9333EA", icon: "🏛️", cn: "C3 社会研究框架" },
 };
 
-export default function StandardsPage() {
+export default function StandardsCN() {
   const [curricula, setCurricula] = useState<Curriculum[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<Curriculum | null>(null);
@@ -45,36 +44,28 @@ export default function StandardsPage() {
     if (selected === slug) { setSelected(null); setDetail(null); return; }
     setSelected(slug);
     setDetailLoading(true);
-    try {
-      const data = await fetchStandards(slug);
-      setDetail(data);
-    } catch (e) { console.error(e); }
+    try { setDetail(await fetchStandards(slug)); } catch (e) { console.error(e); }
     setDetailLoading(false);
   };
 
   const filteredTopics = detail?.topics?.filter((t) => {
     if (!search) return true;
     const lower = search.toLowerCase();
-    return (
-      t.code?.toLowerCase().includes(lower) ||
-      t.data?.title?.toLowerCase().includes(lower) ||
-      t.data?.description?.toLowerCase().includes(lower)
-    );
+    return t.code?.toLowerCase().includes(lower) || t.data?.title?.toLowerCase().includes(lower) || t.data?.description?.toLowerCase().includes(lower);
   }) || [];
 
-  if (loading) return <p className="text-gray-500 text-center py-8">Loading...</p>;
+  if (loading) return <p className="text-gray-500 text-center py-8">加载中...</p>;
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Curriculum Standards</h2>
-        <p className="text-gray-500 mt-1">7 curriculum frameworks aligned to 1,590 micro-topics</p>
+        <h2 className="text-2xl font-bold">课程标准体系</h2>
+        <p className="text-gray-500 mt-1">7 套国际课程标准，映射到 1,590 个微主题</p>
       </div>
 
-      {/* Curriculum cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {curricula.map((c) => {
-          const info = CURRICULUM_INFO[c.slug] || { color: "#6B7280", icon: "📐", shortName: c.slug };
+          const info = CURRICULUM_INFO[c.slug] || { color: "#6B7280", icon: "📐", cn: c.slug };
           const isSelected = selected === c.slug;
           return (
             <button key={c.slug} onClick={() => loadDetail(c.slug)}
@@ -83,24 +74,18 @@ export default function StandardsPage() {
               }`}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xl">{info.icon}</span>
-                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: info.color + "20", color: info.color }}>
-                  {c.country}
-                </span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: info.color + "20", color: info.color }}>{c.country}</span>
               </div>
-              <h3 className="font-semibold text-gray-900 text-sm">{info.shortName}</h3>
+              <h3 className="font-semibold text-gray-900 text-sm">{info.cn}</h3>
               <p className="text-xs text-gray-500 mt-1 line-clamp-2">{c.name}</p>
-              {c.version && <p className="text-xs text-gray-400 mt-1">v{c.version}</p>}
             </button>
           );
         })}
       </div>
 
-      {/* Detail panel */}
       {selected && (
         <div className="bg-white rounded-lg shadow p-5">
-          {detailLoading ? (
-            <p className="text-gray-500">Loading standards...</p>
-          ) : detail ? (
+          {detailLoading ? <p className="text-gray-500">加载中...</p> : detail ? (
             <div className="space-y-4">
               <div className="flex items-start justify-between">
                 <div>
@@ -110,29 +95,21 @@ export default function StandardsPage() {
                     {detail.version && <span>v{detail.version}</span>}
                     {detail.textIncluded !== undefined && (
                       <span className={`px-2 py-0.5 rounded text-xs ${detail.textIncluded ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
-                        {detail.textIncluded ? "Full text" : "Codes only"}
+                        {detail.textIncluded ? "全文" : "仅代码"}
                       </span>
                     )}
                   </div>
                 </div>
-                <button onClick={() => { setSelected(null); setDetail(null); }}
-                  className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+                <button onClick={() => { setSelected(null); setDetail(null); }} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
               </div>
 
-              {detail.license && (
-                <p className="text-xs text-gray-400 bg-gray-50 p-2 rounded">{detail.license}</p>
-              )}
-
-              {/* Search within standards */}
               {detail.topics && detail.topics.length > 0 && (
                 <>
                   <div className="flex gap-2">
-                    <input type="text" placeholder={`Search ${detail.topics.length} standards...`}
+                    <input type="text" placeholder={`搜索 ${detail.topics.length} 条标准...`}
                       value={search} onChange={e => setSearch(e.target.value)}
                       className="border rounded px-3 py-1.5 text-sm flex-1" />
-                    <span className="text-sm text-gray-500 self-center">
-                      {filteredTopics.length} results
-                    </span>
+                    <span className="text-sm text-gray-500 self-center">{filteredTopics.length} 条</span>
                   </div>
 
                   <div className="max-h-96 overflow-auto space-y-1">
@@ -141,11 +118,9 @@ export default function StandardsPage() {
                         <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded shrink-0">{t.code}</span>
                         <div className="min-w-0">
                           <div className="font-medium text-gray-900">{t.data?.title || t.code}</div>
-                          {t.data?.description && (
-                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{t.data.description}</p>
-                          )}
-                          <div className="flex gap-2 mt-1">
-                            {t.data?.gradeLevel && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Grade {t.data.gradeLevel}</span>}
+                          {t.data?.description && <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{t.data.description}</p>}
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {t.data?.gradeLevel && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">年级 {t.data.gradeLevel}</span>}
                             {t.data?.domain && <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{t.data.domain}</span>}
                             {t.data?.keyStage && <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">{t.data.keyStage}</span>}
                             {t.data?.year && <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">{t.data.year}</span>}
@@ -153,9 +128,7 @@ export default function StandardsPage() {
                         </div>
                       </div>
                     ))}
-                    {filteredTopics.length > 100 && (
-                      <p className="text-center text-sm text-gray-400 py-2">Showing 100 of {filteredTopics.length}</p>
-                    )}
+                    {filteredTopics.length > 100 && <p className="text-center text-sm text-gray-400 py-2">显示前 100 条，共 {filteredTopics.length} 条</p>}
                   </div>
                 </>
               )}

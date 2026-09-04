@@ -10,6 +10,8 @@ const SubjectsPage = lazy(() => import("./pages/Subjects"));
 const ClustersPage = lazy(() => import("./pages/Clusters"));
 const HomeCN = lazy(() => import("./pages/HomeCN"));
 const TopicsCN = lazy(() => import("./pages/TopicsCN"));
+const StandardsPage = lazy(() => import("./pages/Standards"));
+const StandardsCN = lazy(() => import("./pages/StandardsCN"));
 const TopicDetailCN = lazy(() => import("./pages/TopicDetailCN"));
 
 function Loading() {
@@ -32,12 +34,14 @@ function Layout() {
         { to: "/cn/graph", label: "图谱" },
         { to: "/cn/subjects", label: "学科" },
         { to: "/cn/clusters", label: "家长" },
+        { to: "/cn/standards", label: "课标" },
       ]
     : [
         { to: "/topics", label: "Topics" },
         { to: "/graph", label: "Graph" },
         { to: "/subjects", label: "Subjects" },
         { to: "/clusters", label: "Clusters" },
+        { to: "/standards", label: "Standards" },
       ];
 
   return (
@@ -119,12 +123,14 @@ function Layout() {
             <Route path="/graph" element={<GraphPage />} />
             <Route path="/subjects" element={<SubjectsPage />} />
             <Route path="/clusters" element={<ClustersPage />} />
+            <Route path="/standards" element={<StandardsPage />} />
             <Route path="/cn" element={<HomeCN />} />
             <Route path="/cn/topics" element={<TopicsCN />} />
             <Route path="/cn/topic/:id" element={<TopicDetailCN />} />
             <Route path="/cn/graph" element={<GraphPage />} />
             <Route path="/cn/subjects" element={<SubjectsPage />} />
             <Route path="/cn/clusters" element={<ClustersPage />} />
+            <Route path="/cn/standards" element={<StandardsCN />} />
           </Routes>
         </Suspense>
       </main>

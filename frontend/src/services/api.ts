@@ -5,7 +5,6 @@ import type {
   SubjectStat,
   Domain,
   Cluster,
-  StandardsResponse,
   GraphData,
 } from '../types/topic'
 
@@ -71,7 +70,8 @@ export function fetchClusters(): Promise<Cluster[]> {
 }
 
 /** 课程标准 */
-export function fetchStandards(): Promise<StandardsResponse> {
+export function fetchStandards(curriculum?: string): Promise<any> {
+  if (curriculum) return get(`${BASE}/standards`, { curriculum })
   return get(`${BASE}/standards`)
 }
 
