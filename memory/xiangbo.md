@@ -50,6 +50,13 @@
 - 总计: 97 单元测试全部通过
 - 完成时间: 2026-09-07
 
+### 2026-09-07 (补测)
+- P0: Graph 页面测试 (14 tests)
+- P1: Header 去 mock，测试真实行为 (9 tests)
+- P1: TopicDetailCN 中文页面测试 (18 tests)
+- P1: Standards 课程标准页面测试 (15 tests)
+- **总计: 12 文件, 147 tests 全部通过** 🎉
+
 ## 进度记录
 
 ### 2026-08-31
@@ -72,6 +79,11 @@
 - 97 个单元测试全部通过（Vitest）
 - E2E 测试文件已编写（Playwright，需有浏览器环境运行）
 - **xiangbo 所有任务已完成** 🎉
+
+### 2026-09-07 (专家评审后补测)
+- 专家评审 7.5/10，指出 Graph/中文页/Header mock 为短板
+- 补全 P0 (Graph 14 tests) + P1 (Header 9 + TopicDetailCN 18 + Standards 15 tests)
+- 147 tests 全绿，覆盖率大幅提升
 
 ## 服务端口
 - 前端: http://124.222.188.198:5174
