@@ -35,10 +35,20 @@
 - [x] EN (`/standards`) + CN (`/cn/standards`)
 - 完成时间: 2026-09-03
 
-#### X12 - 前端测试 ⏳ 待开始
-- 单元测试（Vitest）
-- E2E 测试（Playwright）
-- 预估: 4h
+#### X12 - 前端测试 ✅ 已完成
+- [x] Vitest 配置（vitest.config.ts + setup.ts）
+- [x] API 服务层单元测试（15 tests: fetchTopics/fetchTopic/fetchPrereqs/fetchUnlocks/fetchPath/fetchSubjects/fetchDomains/fetchClusters/fetchStandards/fetchGraph + 错误处理）
+- [x] Mock 数据生成器测试（21 tests: generateMockGraph/generateMockSubjects/generateMockTopics/generateMockTopic/generateMockPrereqs/generateMockUnlocks/generateMockPath/generateMockClusters/generateMockStandards）
+- [x] VirtualList 组件测试（7 tests: 可见项渲染/滚动/overscan/空数据）
+- [x] Home 页面测试（6 tests: 标题/副标题/导航卡片/链接/统计）
+- [x] Topics 页面测试（10 tests: 列表/筛选/搜索/分页/加载态）
+- [x] TopicDetail 页面测试（16 tests: 加载/详情/依赖/路径/404）
+- [x] Header 组件测试（7 tests: 搜索/数据源/暗色模式切换）
+- [x] Sidebar 组件测试（10 tests: 导航项/折叠展开/版本）
+- [x] App 路由测试（5 tests: 首页/导航/中英文路由）
+- [x] Playwright E2E 测试文件（app.spec.ts: 首页/导航/中文版/筛选/响应式）
+- 总计: 97 单元测试全部通过
+- 完成时间: 2026-09-07
 
 ## 进度记录
 
@@ -55,7 +65,13 @@
 
 ### 2026-09-03
 - X9 课程标准对齐页完成
-- **仅剩 X12 前端测试**
+- 仅剩 X12 前端测试
+
+### 2026-09-07
+- X12 前端测试完成
+- 97 个单元测试全部通过（Vitest）
+- E2E 测试文件已编写（Playwright，需有浏览器环境运行）
+- **xiangbo 所有任务已完成** 🎉
 
 ## 服务端口
 - 前端: http://124.222.188.198:5174
