@@ -36,6 +36,14 @@
 - 完成时间: 2026-09-03
 
 #### X12 - 前端测试 ✅ 已完成
+- (见下方详细记录)
+
+#### X13 - README 更新 ✅ 已完成
+- [x] 项目概览 (数据规模/技术栈/测试数量)
+- [x] 完整项目结构 (含 scripts/Docker/nginx)
+- [x] 测试命令说明
+- [x] 部署指南链接
+- 完成时间: 2026-09-08
 - [x] Vitest 配置（vitest.config.ts + setup.ts）
 - [x] API 服务层单元测试（15 tests: fetchTopics/fetchTopic/fetchPrereqs/fetchUnlocks/fetchPath/fetchSubjects/fetchDomains/fetchClusters/fetchStandards/fetchGraph + 错误处理）
 - [x] Mock 数据生成器测试（21 tests: generateMockGraph/generateMockSubjects/generateMockTopics/generateMockTopic/generateMockPrereqs/generateMockUnlocks/generateMockPath/generateMockClusters/generateMockStandards）

@@ -1,24 +1,20 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  marble-api:
-    build:
-      context: ./backend
-      dockerfile: ../Dockerfile
-    container_name: marble-api
-    restart: unless-stopped
+  marble:
+    build: .
+    container_name: marble-platform
     ports:
       - "3200:3200"
     environment:
       - NODE_ENV=production
       - PORT=3200
-      - LOG_LEVEL=info
-      - CORS_ORIGIN=*
+    restart: unless-stopped
+    volumes:
+      # 挂载数据目录 (如果需要动态更新数据)
+      - ./backend/marble-data:/app/backend/marble-data:ro
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3200/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3200/api/health"]
       interval: 30s
-      timeout: 3s
+      timeout: 5s
       retries: 3
-      start_period: 5s
-    mem_limit: 256m
-    cpus: "0.5"

@@ -2,24 +2,22 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files and install
-COPY package.json package-lock.json ./
-RUN npm ci --production
+# 后端
+COPY backend/package*.json ./backend/
+RUN cd backend && npm ci --production
 
-# Copy source and data
-COPY src/ ./src/
-COPY openapi.yaml ./
-COPY marble-data/ ./marble-data/
-COPY .env ./
+COPY backend/ ./backend/
 
-# Create non-root user
-RUN addgroup -g 1001 -S marble && \
-    adduser -S marble -u 1001 -G marble
-USER marble
+# 前端构建
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm ci
+
+COPY frontend/ ./frontend/
+RUN cd frontend && npm run build
+
+# 前端静态文件移到后端可托管的位置
+RUN mkdir -p /app/backend/public && cp -r /app/frontend/dist/* /app/backend/public/
 
 EXPOSE 3200
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3200/api/health || exit 1
-
-CMD ["node", "src/app.js"]
+CMD ["node", "backend/src/app.js"]
