@@ -13,7 +13,7 @@ import {
 } from '../api'
 
 const mockFetch = vi.fn()
-global.fetch = mockFetch
+globalThis.fetch = mockFetch as typeof fetch
 
 function mockJsonResponse(data: unknown, status = 200) {
   return Promise.resolve({

@@ -63,12 +63,15 @@ router.get("/standards", (req, res) => {
 });
 
 // GET /api/graph — full graph for visualization
+// Query params: ?subject=Science  — filter by subject
+//               ?verbose=true     — include edge reason (adds ~400KB)
 router.get("/graph", (req, res) => {
-  const { subject } = req.query;
+  const { subject, verbose } = req.query;
   let filteredTopics = getTopics();
   if (subject) filteredTopics = filteredTopics.filter((t) => t.subject === subject);
   const topicIds = new Set(filteredTopics.map((t) => t.id));
   const filteredDeps = getDeps().filter((d) => topicIds.has(d.topicId) && topicIds.has(d.prerequisiteId));
+  const includeReason = verbose === "true";
 
   res.json({
     nodes: filteredTopics.map((t) => ({
@@ -81,12 +84,11 @@ router.get("/graph", (req, res) => {
       type: t.type,
       centrality: t.centrality,
     })),
-    edges: filteredDeps.map((d) => ({
-      source: d.prerequisiteId,
-      target: d.topicId,
-      strength: d.strength,
-      reason: d.reason,
-    })),
+    edges: filteredDeps.map((d) => {
+      const edge = { source: d.prerequisiteId, target: d.topicId, strength: d.strength };
+      if (includeReason) edge.reason = d.reason;
+      return edge;
+    }),
   });
 });
 
